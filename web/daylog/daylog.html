@@ -1,0 +1,981 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daylog (Beta) | Daily activity log</title>
+<meta name="description" content="Write what you did today and add a photo. Works offline and syncs to your own cloud account.">
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F0F4F2; --surface: #FFFFFF; --surface2: #E2EAE6; --ink: #16211E; --muted: #51635D; --line: #C9D5D0;
+    --accent: #1B6B55; --accent-ink: #FFFFFF; --danger: #B3261E;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1614; --surface: #16211F; --surface2: #1F2E2B; --ink: #E6EEEB; --muted: #98ABA5; --line: #2A3B37;
+      --accent: #7ED6B2; --accent-ink: #06231A; --danger: #FF8A80;
+      color-scheme: dark;
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 1rem; line-height: 1.55; min-height: 100dvh; -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+  p { margin: 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--accent); color: var(--accent-ink); padding: 10px 14px; border-radius: 8px; font-weight: 700; }
+  .skip:focus { top: 8px; }
+
+  body { display: flex; flex-direction: column; }
+  .app { width: 100%; max-width: 560px; margin: 0 auto; flex: 1 0 auto; }
+
+  /* Company header and footer, matching ivarsolutions.net */
+  .site-header, .site-footer {
+    --paper: #F2F4F7; --ink: #15233B; --muted: #4F5E77; --line: #CBD3DF; --accent: #1F4FD8;
+    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--paper); color: var(--ink);
+  }
+  @media (prefers-color-scheme: dark) {
+    .site-header, .site-footer { --paper: #0F1726; --ink: #E7ECF5; --muted: #9FADC6; --line: #2A3A5A; --accent: #8AACFF; }
+  }
+  .wrap { width: min(1120px, 100% - clamp(32px, 10vw, 96px)); margin-inline: auto; }
+  .site-header { border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
+  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 14px; }
+  .site-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); }
+  .site-brand img { width: 52px; height: 52px; border-radius: 8px; padding: 4px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
+  .site-nav { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; padding: 0; list-style: none; font-size: 0.97rem; }
+  .site-nav a { display: inline-block; text-decoration: none; color: var(--muted); padding-block: 4px; border-bottom: 2px solid transparent; }
+  .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+  .beta-n { margin-left: 4px; padding: 0 6px; border: 1px solid var(--accent); border-radius: 999px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); vertical-align: 1px; }
+  .site-header :focus-visible, .site-footer :focus-visible { outline-color: var(--accent); }
+  .site-footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 0.93rem; }
+  .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; }
+  .site-footer a { color: var(--muted); text-underline-offset: 3px; }
+  .site-footer a:hover { color: var(--ink); }
+
+  .top { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px 12px; padding-top: calc(10px + env(safe-area-inset-top)); }
+  .top-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
+  .beta { display: inline-block; vertical-align: 2px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .count { color: var(--muted); font-size: 0.88rem; }
+  .top-right { display: flex; align-items: center; gap: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .chip[data-s="ok"]::before { background: var(--accent); }
+  .chip[data-s="syncing"]::before { background: #C98A00; }
+  .chip[data-s="problem"]::before, .chip[data-s="signedout"]::before { background: var(--danger); }
+  .field { display: grid; gap: 4px; font-weight: 700; font-size: 0.9rem; }
+  .field input { height: 46px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-weight: 500; font-size: 1rem; }
+  .field input:focus { outline: 3px solid var(--accent); }
+  .adv { display: grid; gap: 10px; }
+  .adv summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+  .adv .field { margin-bottom: 10px; }
+  .ph { display: grid; place-items: center; width: 100%; aspect-ratio: 1; background: var(--surface2); color: var(--muted); font-size: 0.8rem; border-radius: 12px; text-align: center; padding: 6px; }
+  .date-nav { display: grid; grid-template-columns: 46px 1fr 46px; gap: 8px; align-items: center; }
+  .icon-btn { height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 1.4rem; line-height: 1; }
+  .icon-btn:disabled { opacity: 0.35; cursor: default; }
+  .date-input { width: 100%; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; text-align: center; }
+  .date-note { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+
+  main { padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); outline: none; }
+
+  /* Composer */
+  .composer { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
+  textarea { display: block; width: 100%; min-height: 128px; max-height: 45vh; resize: none; padding: 4px 2px; border: 0; background: transparent; font-size: 1.1rem; line-height: 1.55; }
+  textarea:focus { outline: none; }
+  textarea::placeholder { color: var(--muted); }
+  .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+  .thumbs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .thumbs li { position: relative; }
+  .thumbs img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  .thumbs .x { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, 0.7); color: #fff; font-size: 1.1rem; line-height: 1; }
+
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .tool { min-height: 50px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-weight: 700; padding: 8px 10px; }
+  .tool:hover { background: var(--surface2); }
+  .save { width: 100%; min-height: 54px; margin-top: 10px; border: 0; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 1.05rem; }
+  .save:disabled { opacity: 0.6; cursor: default; }
+  .msg { min-height: 1.4em; margin-top: 6px; color: var(--danger); font-size: 0.9rem; text-align: center; }
+
+  /* Entries */
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 26px 0 4px; }
+  .entries { list-style: none; margin: 0; padding: 0; }
+  .entry { padding: 16px 0; border-bottom: 1px solid var(--line); }
+  .meta { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.88rem; font-weight: 500; min-height: 28px; }
+  .link { background: none; border: 0; padding: 8px 2px; font-weight: 700; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.05rem; }
+  .grid { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .photo { display: block; width: 100%; padding: 0; border: 0; background: none; border-radius: 12px; overflow: hidden; }
+  .photo img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+  .empty { padding: 36px 8px; text-align: center; color: var(--muted); }
+
+  .backup { margin-top: 32px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .backup summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-weight: 500; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0; }
+  .hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+  .ghost { min-height: 46px; border: 1px solid var(--line); background: transparent; border-radius: 12px; font-weight: 700; padding: 8px 14px; }
+  .ghost:hover { background: var(--surface); }
+  .primary { min-height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 800; padding: 8px 16px; }
+  .danger { min-height: 46px; border: 1px solid var(--danger); background: transparent; color: var(--danger); border-radius: 12px; font-weight: 700; padding: 8px 14px; }
+
+  dialog { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 16px; padding: 0; width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+  dialog::backdrop { background: rgba(5, 8, 14, 0.7); }
+  @media (max-width: 560px) { dialog { margin-block: auto 12px; } }
+  .sheet { display: grid; gap: 12px; padding: 18px; }
+  .sheet h2 { font-size: 1.15rem; }
+  .sheet textarea { min-height: 110px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .sheet textarea:focus { outline: 3px solid var(--accent); }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  #viewDlg { width: min(900px, calc(100% - 16px)); background: #000; border: 0; }
+  #viewDlg img { display: block; width: 100%; max-height: calc(100dvh - 90px); object-fit: contain; }
+  #viewDlg .btns { padding: 10px; justify-content: center; background: #000; }
+  #viewDlg .ghost { color: #fff; border-color: #555; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; width: min(520px, calc(100% - 24px)); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: var(--ink); color: var(--bg); border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
+  .toast button { background: none; border: 0; font-weight: 800; color: inherit; text-decoration: underline; padding: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<noscript><p style="padding:16px">Daylog needs JavaScript to run.</p></noscript>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-brand" href="https://ivarsolutions.net/">
+      <img src="https://ivarsolutions.net/img/logo/touch.png" alt="" width="52" height="52">
+      Ivar Solutions Inc
+    </a>
+    <nav aria-label="Main">
+      <ul class="site-nav">
+        <li><a href="https://ivarsolutions.net/#about">About</a></li>
+        <li><a href="https://ivarsolutions.net/#clients">Clients</a></li>
+        <li><a href="https://ivarsolutions.net/#publications">Publications</a></li>
+        <li><a href="https://ivarsolutions.net/#skills">Skills</a></li>
+        <li><a href="https://ivarsolutions.net/#contact">Contact</a></li>
+        <li><a href="https://ivarsolutions.net/daylog.html" aria-current="page">Daylog <span class="beta-n">Beta</span></a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<div class="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">Daylog <span class="beta" title="Daylog is in beta. Features may change.">Beta</span></div>
+      <div class="top-right">
+        <button type="button" class="chip" id="syncChip" data-s="off">Sync off</button>
+        <div class="count" id="count" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="date-nav">
+      <button class="icon-btn" id="prevDay" aria-label="Previous day">&lsaquo;</button>
+      <input class="date-input" type="date" id="dateInput" aria-label="Day being logged">
+      <button class="icon-btn" id="nextDay" aria-label="Next day">&rsaquo;</button>
+    </div>
+    <div class="date-note" id="dateNote"></div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="composer" aria-label="New entry">
+      <label for="text" class="sr">What did you do?</label>
+      <textarea id="text" placeholder="What did you do?" maxlength="5000"></textarea>
+      <ul class="thumbs" id="pending" aria-label="Photos to add"></ul>
+      <div class="tools">
+        <button type="button" class="tool" id="takeBtn">Take photo</button>
+        <button type="button" class="tool" id="pickBtn">Choose image</button>
+      </div>
+      <button type="button" class="save" id="save">Save entry</button>
+      <p class="msg" id="msg" role="alert"></p>
+      <input type="file" id="takeInput" accept="image/*" capture="environment" hidden>
+      <input type="file" id="pickInput" accept="image/*" multiple hidden>
+    </section>
+
+    <section aria-label="Entries for this day">
+      <div class="section-head"><h2 id="listTitle">Today</h2></div>
+      <ul class="entries" id="entries"></ul>
+    </section>
+
+    <details class="backup">
+      <summary>Sync, backup and data</summary>
+      <p class="hint" id="syncHint">Entries and photos are kept in this browser first, then copied to your cloud account when you are signed in.</p>
+      <div class="btn-row">
+        <button type="button" class="ghost" id="syncBtn">Sync settings</button>
+        <button type="button" class="ghost" id="expBtn">Export backup</button>
+        <button type="button" class="ghost" id="impBtn">Import backup</button>
+        <button type="button" class="danger" id="eraseBtn">Erase all data</button>
+      </div>
+      <input type="file" id="impInput" accept="application/json,.json" hidden>
+    </details>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>&copy; 2022&ndash;2026 Ivar Solutions Inc &middot; Daylog is in beta, so keep an occasional backup.</span>
+    <a href="https://ivarsolutions.net/">ivarsolutions.net</a>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog id="editDlg" aria-labelledby="editTitle">
+  <form class="sheet" id="editForm">
+    <h2 id="editTitle">Edit entry</h2>
+    <label class="sr" for="eText">Entry text</label>
+    <textarea id="eText" maxlength="5000"></textarea>
+    <ul class="thumbs" id="ePhotos" aria-label="Photos in this entry"></ul>
+    <p class="msg" id="eErr" role="alert"></p>
+    <div class="btns">
+      <button type="button" class="danger" id="eDel">Delete</button>
+      <button type="button" class="ghost" id="eCancel">Cancel</button>
+      <button type="submit" class="primary">Save changes</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="connDlg" aria-labelledby="connTitle">
+  <form class="sheet" id="connForm" autocomplete="on">
+    <h2 id="connTitle">Sync settings</h2>
+    <div id="connIn" hidden>
+      <p id="connWho"></p>
+      <p class="hint" id="connLast"></p>
+    </div>
+    <div id="connOut">
+      <p class="hint">Sign in with the account your administrator created. Your entries stay on this device until you do.</p>
+      <details id="connAdv" class="adv">
+        <summary>Connection details</summary>
+        <label class="field">API address<input id="cApi" type="url" inputmode="url" autocomplete="off" placeholder="https://abc123.execute-api.us-east-1.amazonaws.com"></label>
+        <label class="field">App client ID<input id="cClient" type="text" autocomplete="off" spellcheck="false"></label>
+      </details>
+      <label class="field">Email<input id="cEmail" type="email" autocomplete="username"></label>
+      <label class="field">Password<input id="cPass" type="password" autocomplete="current-password"></label>
+    </div>
+    <p class="msg" id="connErr" role="alert"></p>
+    <div class="btns">
+      <button type="button" class="ghost" id="connClose">Close</button>
+      <button type="button" class="ghost" id="connSync" hidden>Sync now</button>
+      <button type="button" class="danger" id="connOutBtn" hidden>Sign out</button>
+      <button type="submit" class="primary" id="connGo">Sign in</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="viewDlg" aria-label="Photo">
+  <img id="viewImg" alt="Full size photo">
+  <div class="btns"><button type="button" class="ghost" id="viewClose">Close</button></div>
+</dialog>
+
+<dialog id="askDlg" aria-labelledby="askTitle">
+  <div class="sheet">
+    <h2 id="askTitle">Are you sure?</h2>
+    <p id="askBody" class="hint"></p>
+    <div class="btns">
+      <button type="button" class="ghost" id="askNo">Cancel</button>
+      <button type="button" class="danger" id="askYes">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Connection settings ----------
+   Fill these in once and everyone who opens the page is pre-configured.
+   Leave them empty to type them into the Sync settings box instead. */
+const CONFIG = {
+  apiUrl: 'https://8ha3dcll5a.execute-api.us-east-1.amazonaws.com',     // e.g. https://abc123.execute-api.us-east-1.amazonaws.com
+  clientId: '5cm9v8rbhi8u1lt5n0p5qsap3g',   // UserPoolClientId from the stack outputs
+  region: ''      // optional, read from the API address when empty
+};
+
+/* ---------- Helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+const pad2 = n => String(n).padStart(2, '0');
+const dstr = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const today = () => dstr(new Date());
+const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return dstr(d); };
+const daysBetween = (a, b) => Math.round((parseD(b) - parseD(a)) / 86400000);
+const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s));
+const fmtLong = s => parseD(s).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+const MAX_PHOTOS = 6;
+const KEY_RE = /^photos\/[\w-]+\/[\w-]+\.(jpg|png|webp)$/;
+const DRAFT_KEY = 'daylog.draft';
+const AUTH_KEY = 'daylog.auth', CONN_KEY = 'daylog.conn', SYNC_KEY = 'daylog.sync';
+const lid = () => 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const mem = {};
+const lsGet = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return mem[k] || null; } };
+const lsSet = (k, v) => { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* kept in memory */ } };
+const lsDel = k => { delete mem[k]; try { localStorage.removeItem(k); } catch (e) { /* ignore */ } };
+const normImages = arr => (Array.isArray(arr) ? arr : []).map(x => typeof x === 'string' ? { lid: lid(), data: x } : (x && typeof x === 'object' ? { ...x, lid: x.lid || lid() } : null)).filter(x => Boolean(x));
+const imgSrc = i => (i && (i.data || i.url)) || '';
+
+/* ---------- Storage: IndexedDB with in-memory fallback ---------- */
+let db = null, useMemory = false, memory = [];
+function openDb() {
+  return new Promise(resolve => {
+    try {
+      const req = indexedDB.open('daylog', 1);
+      req.onupgradeneeded = () => { const s = req.result.createObjectStore('entries', { keyPath: 'id' }); s.createIndex('date', 'date'); };
+      req.onsuccess = () => { db = req.result; resolve(true); };
+      req.onerror = () => resolve(false);
+      req.onblocked = () => resolve(false);
+    } catch (e) { resolve(false); }
+  });
+}
+const store = mode => db.transaction('entries', mode).objectStore('entries');
+const wrap = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+async function dbPut(e) {
+  if (useMemory) { const i = memory.findIndex(x => x.id === e.id); if (i >= 0) memory[i] = e; else memory.push(e); return; }
+  await wrap(store('readwrite').put(e));
+}
+async function dbByDate(d) { return useMemory ? memory.filter(x => x.date === d) : wrap(store('readonly').index('date').getAll(d)); }
+async function dbAll() { return useMemory ? memory.slice() : wrap(store('readonly').getAll()); }
+async function dbGet(id) { return useMemory ? memory.find(x => x.id === id) : wrap(store('readonly').get(id)); }
+async function dbDelete(id) { if (useMemory) { memory = memory.filter(x => x.id !== id); return; } await wrap(store('readwrite').delete(id)); }
+async function dbClear() { if (useMemory) { memory = []; return; } await wrap(store('readwrite').clear()); }
+
+/* ---------- View state ---------- */
+let viewDate = today();
+let pending = [];
+let editId = null;
+let editImages = [];
+let renderSeq = 0;
+
+/* ---------- Toast, haptic, confirm ---------- */
+let toastTimer = null;
+function toast(msg, action) {
+  const el = $('#toast');
+  el.innerHTML = `<span>${esc(msg)}</span>` + (action ? `<button type="button">${esc(action.label)}</button>` : '');
+  el.hidden = false;
+  if (action) $('button', el).onclick = () => { el.hidden = true; action.run(); };
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, action ? 7000 : 3500);
+}
+const haptic = () => { try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) { /* not supported */ } };
+function ask(title, body, yes) {
+  return new Promise(resolve => {
+    const dlg = $('#askDlg');
+    $('#askTitle').textContent = title; $('#askBody').textContent = body; $('#askYes').textContent = yes || 'Confirm';
+    let done = false;
+    const finish = v => { if (done) return; done = true; if (dlg.open) dlg.close(); resolve(v); };
+    $('#askYes').onclick = () => finish(true);
+    $('#askNo').onclick = () => finish(false);
+    dlg.oncancel = () => finish(false);
+    dlg.onclose = () => finish(false);
+    dlg.showModal();
+  });
+}
+
+/* ---------- Images: read, shrink, convert to data URL ---------- */
+function readAsDataURL(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(file); });
+}
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    const t = setTimeout(() => rej(new Error('timeout')), 15000);
+    img.onload = () => { clearTimeout(t); res(img); };
+    img.onerror = () => { clearTimeout(t); rej(new Error('decode')); };
+    img.src = src;
+  });
+}
+async function shrink(file) {
+  const src = await readAsDataURL(file);
+  const img = await loadImage(src);
+  const max = 1600;
+  const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+  const scale = Math.min(1, max / Math.max(w0, h0, 1));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w0 * scale)); c.height = Math.max(1, Math.round(h0 * scale));
+  const ctx = c.getContext && c.getContext('2d');
+  if (!ctx) return src;
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const out = c.toDataURL('image/jpeg', 0.82);
+  return (scale < 1 || out.length < src.length) ? out : src;
+}
+async function addFiles(fileList) {
+  const files = Array.from(fileList || []).filter(f => !f.type || /^image\//.test(f.type));
+  if (!files.length) return;
+  const room = MAX_PHOTOS - pending.length;
+  if (files.length > room) toast(`Up to ${MAX_PHOTOS} photos per entry.`);
+  for (const f of files.slice(0, Math.max(room, 0))) {
+    try { pending.push(await shrink(f)); }
+    catch (e) { toast("That image couldn't be read. Try a JPEG or PNG."); }
+  }
+  setMsg('');
+  renderPending();
+}
+
+/* ---------- Rendering ---------- */
+function setMsg(m) { $('#msg').textContent = m || ''; }
+function renderHeader() {
+  const input = $('#dateInput');
+  input.value = viewDate; input.max = today();
+  $('#nextDay').disabled = viewDate >= today();
+  const n = daysBetween(viewDate, today());
+  $('#dateNote').textContent = n === 0 ? 'Today' : n === 1 ? 'Yesterday' : `${n} days ago`;
+}
+function renderPending() {
+  $('#pending').innerHTML = pending.map((src, i) =>
+    `<li><img src="${esc(src)}" alt="Photo ${i + 1} to add"><button type="button" class="x" data-i="${i}" aria-label="Remove photo ${i + 1}">&times;</button></li>`).join('');
+  $('#takeBtn').disabled = $('#pickBtn').disabled = pending.length >= MAX_PHOTOS;
+}
+function entryTime(e) {
+  const c = new Date(e.createdAt);
+  if (isNaN(c) || dstr(c) !== e.date) return 'Added later';
+  return c.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+async function render() {
+  const seq = ++renderSeq;
+  renderHeader();
+  let list = [];
+  try { list = (await dbByDate(viewDate)).filter(e => !e.deletedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt)); }
+  catch (e) { toast('Could not read your entries.'); }
+  if (seq !== renderSeq) return;
+  $('#listTitle').textContent = viewDate === today() ? 'Today' : fmtLong(viewDate);
+  $('#count').textContent = list.length ? `${list.length} entr${list.length === 1 ? 'y' : 'ies'}` : '';
+  if (!list.length) {
+    $('#entries').innerHTML = '<li class="empty">Nothing logged for this day yet. Write what you did, or add a photo.</li>';
+    return;
+  }
+  $('#entries').innerHTML = list.map(e => {
+    const imgs = (e.images || []).map((im, i) => imgSrc(im)
+      ? `<li><button type="button" class="photo" data-view="${esc(e.id)}:${i}" aria-label="Open photo ${i + 1}"><img src="${esc(imgSrc(im))}" alt="Photo ${i + 1} from this entry" loading="lazy"></button></li>`
+      : `<li><div class="ph">Photo will load when online</div></li>`).join('');
+    return `<li class="entry" data-id="${esc(e.id)}">
+      <div class="meta"><span>${esc(entryTime(e))}</span><button type="button" class="link" data-edit="${esc(e.id)}">Edit</button></div>
+      ${e.text ? `<p class="body">${esc(e.text)}</p>` : ''}
+      ${imgs ? `<ul class="grid">${imgs}</ul>` : ''}
+    </li>`;
+  }).join('');
+}
+
+/* ---------- Draft (text only) ---------- */
+const saveDraft = () => { try { localStorage.setItem(DRAFT_KEY, $('#text').value); } catch (e) { /* ignore */ } };
+const loadDraft = () => { try { return localStorage.getItem(DRAFT_KEY) || ''; } catch (e) { return ''; } };
+const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ } };
+function autosize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.45)) + 'px'; }
+
+/* ---------- Actions ---------- */
+async function saveEntry() {
+  const text = $('#text').value.trim();
+  if (!text && !pending.length) { setMsg('Write something or add a photo first.'); return; }
+  const btn = $('#save'); btn.disabled = true;
+  const now = new Date().toISOString();
+  const entry = { id: uid(), date: viewDate, createdAt: now, updatedAt: now, text, images: pending.map(d => ({ lid: lid(), data: d })), dirty: 1 };
+  try { await dbPut(entry); }
+  catch (e) { btn.disabled = false; setMsg('Could not save. Browser storage may be full. Export a backup and remove old entries.'); return; }
+  pending = []; $('#text').value = ''; clearDraft(); autosize($('#text')); renderPending(); setMsg('');
+  btn.disabled = false; haptic();
+  await render();
+  toast('Entry saved');
+  scheduleSync();
+}
+async function openEdit(id) {
+  const e = await dbGet(id);
+  if (!e) return;
+  editId = id; editImages = normImages(e.images);
+  $('#eText').value = e.text || ''; $('#eErr').textContent = '';
+  renderEditPhotos();
+  $('#editDlg').showModal();
+}
+function renderEditPhotos() {
+  $('#ePhotos').innerHTML = editImages.map((im, i) =>
+    `<li>${imgSrc(im) ? `<img src="${esc(imgSrc(im))}" alt="Photo ${i + 1}">` : '<div class="ph">Not loaded</div>'}<button type="button" class="x" data-i="${i}" aria-label="Remove photo ${i + 1}">&times;</button></li>`).join('');
+}
+async function saveEdit() {
+  const e = await dbGet(editId);
+  if (!e) return;
+  const text = $('#eText').value.trim();
+  if (!text && !editImages.length) { $('#eErr').textContent = 'An entry needs text or a photo. Delete it instead.'; return; }
+  e.text = text; e.images = editImages.slice(); e.updatedAt = new Date().toISOString(); e.dirty = 1; delete e.syncError;
+  try { await dbPut(e); } catch (err) { $('#eErr').textContent = 'Could not save changes.'; return; }
+  $('#editDlg').close();
+  await render();
+  toast('Changes saved');
+  scheduleSync();
+}
+async function deleteEntry() {
+  const e = await dbGet(editId);
+  if (!e) return;
+  const now = new Date().toISOString();
+  e.deletedAt = now; e.updatedAt = now; e.dirty = 1; delete e.syncError;
+  try { await dbPut(e); } catch (err) { $('#eErr').textContent = 'Could not delete.'; return; }
+  $('#editDlg').close();
+  haptic();
+  await render();
+  scheduleSync();
+  toast('Entry deleted', { label: 'Undo', run: async () => {
+    const cur = await dbGet(e.id) || e;
+    delete cur.deletedAt; cur.updatedAt = new Date().toISOString(); cur.dirty = 1;
+    try { await dbPut(cur); } catch (x) { /* ignore */ }
+    await render(); scheduleSync();
+  } });
+}
+async function viewPhoto(ref) {
+  const [id, i] = ref.split(':');
+  const e = await dbGet(id);
+  if (!e || !e.images || !imgSrc(e.images[+i])) return;
+  $('#viewImg').src = imgSrc(e.images[+i]);
+  $('#viewDlg').showModal();
+}
+
+/* ---------- Backup ---------- */
+function download(name, mime, text) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function exportBackup() {
+  const all = (await dbAll()).filter(e => !e.deletedAt).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map(e => ({ id: e.id, date: e.date, createdAt: e.createdAt, updatedAt: e.updatedAt, text: e.text, images: normImages(e.images).map(i => ({ key: i.key, data: i.data })) }));
+  download(`daylog-backup-${today()}.json`, 'application/json', JSON.stringify({ v: 2, app: 'daylog', exportedAt: new Date().toISOString(), entries: all }));
+  toast(`Exported ${all.length} entr${all.length === 1 ? 'y' : 'ies'}`);
+}
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = async () => {
+    let data;
+    try { data = JSON.parse(String(reader.result)); } catch (e) { toast('That file is not valid JSON.'); return; }
+    if (!data || (data.v !== 1 && data.v !== 2) || !Array.isArray(data.entries)) { toast('That file is not a Daylog backup.'); return; }
+    let added = 0;
+    for (const e of data.entries) {
+      if (!e || !e.id || !isDate(e.date) || typeof e.createdAt !== 'string') continue;
+      const clean = {
+        id: String(e.id), date: e.date, createdAt: e.createdAt, updatedAt: e.updatedAt || e.createdAt,
+        text: String(e.text || '').slice(0, 5000),
+        images: normImages(e.images)
+          .map(i => ({ lid: i.lid, data: /^data:image\//.test(i.data || '') ? i.data : undefined, key: KEY_RE.test(i.key || '') ? i.key : undefined }))
+          .filter(i => i.data || i.key).slice(0, MAX_PHOTOS),
+        dirty: 1
+      };
+      if (!clean.text && !clean.images.length) continue;
+      const have = await dbGet(clean.id);
+      if (have && have.updatedAt >= clean.updatedAt) continue;
+      try { await dbPut(clean); added++; } catch (err) { toast('Storage is full. Import stopped.'); break; }
+    }
+    await render();
+    toast(`Imported ${added} entr${added === 1 ? 'y' : 'ies'}`);
+    if (added) scheduleSync();
+  };
+  reader.onerror = () => toast('Could not read that file.');
+  reader.readAsText(file);
+}
+async function purgeOldDeleted() {
+  try {
+    const cutoff = new Date(Date.now() - 30 * 86400000).toISOString();
+    for (const e of await dbAll()) if (e.deletedAt && !e.dirty && e.deletedAt < cutoff) await dbDelete(e.id);
+  } catch (e) { /* ignore */ }
+}
+
+/* ---------- Cloud sync ---------- */
+class SyncError extends Error { constructor(code, message, status) { super(message || code); this.code = code; this.status = status; } }
+const conf = () => {
+  const saved = lsGet(CONN_KEY) || {};
+  const apiUrl = String(CONFIG.apiUrl || saved.apiUrl || '').trim().replace(/\/+$/, '');
+  const m = /\.execute-api\.([a-z0-9-]+)\.amazonaws\.com/.exec(apiUrl);
+  return { apiUrl, clientId: String(CONFIG.clientId || saved.clientId || '').trim(), region: CONFIG.region || (m && m[1]) || '' };
+};
+const loadAuth = () => lsGet(AUTH_KEY);
+const isConnected = () => Boolean(loadAuth() && loadAuth().refresh);
+const syncState = () => lsGet(SYNC_KEY) || {};
+const patchSyncState = p => lsSet(SYNC_KEY, { ...syncState(), ...p });
+
+function jwtClaims(t) {
+  try { const b = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(b + '='.repeat((4 - b.length % 4) % 4))); }
+  catch (e) { return {}; }
+}
+async function cognito(target, payload) {
+  const c = conf();
+  if (!c.region || !c.clientId) throw new SyncError('config', 'Enter the API address and app client ID first.');
+  let res;
+  try {
+    res = await fetch(`https://cognito-idp.${c.region}.amazonaws.com/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.' + target },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) { throw new SyncError('network', 'Could not reach the sign-in service. Check your connection.'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new SyncError(String(data.__type || 'auth').split('#').pop(), data.message || 'Sign-in failed', res.status);
+  return data;
+}
+async function signIn(email, password) {
+  const c = conf();
+  const data = await cognito('InitiateAuth', { AuthFlow: 'USER_PASSWORD_AUTH', ClientId: c.clientId, AuthParameters: { USERNAME: email, PASSWORD: password } });
+  if (data.ChallengeName) throw new SyncError('challenge', 'This account still has a temporary password. Ask your administrator to set a permanent one.');
+  const r = data.AuthenticationResult;
+  if (!r || !r.IdToken) throw new SyncError('auth', 'Sign-in failed.');
+  lsSet(AUTH_KEY, { id: r.IdToken, refresh: r.RefreshToken, exp: Date.now() + (r.ExpiresIn || 3600) * 1000 });
+  return jwtClaims(r.IdToken);
+}
+async function getToken() {
+  const a = loadAuth();
+  if (!a || !a.refresh) throw new SyncError('signedout', 'Please sign in to sync.');
+  if (a.exp - 60000 > Date.now()) return a.id;
+  try {
+    const data = await cognito('InitiateAuth', { AuthFlow: 'REFRESH_TOKEN_AUTH', ClientId: conf().clientId, AuthParameters: { REFRESH_TOKEN: a.refresh } });
+    const r = data.AuthenticationResult;
+    lsSet(AUTH_KEY, { id: r.IdToken, refresh: r.RefreshToken || a.refresh, exp: Date.now() + (r.ExpiresIn || 3600) * 1000 });
+    return r.IdToken;
+  } catch (e) {
+    if (e.code === 'network' || e.code === 'config') throw e;
+    lsDel(AUTH_KEY);
+    throw new SyncError('signedout', 'Your sign-in expired. Please sign in again.');
+  }
+}
+async function api(method, path, body, retry = true) {
+  const token = await getToken();
+  let res;
+  try {
+    res = await fetch(conf().apiUrl + path, { method, headers: { Authorization: token, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  } catch (e) { throw new SyncError('network', 'offline'); }
+  if (res.status === 401) {
+    if (retry) { const a = loadAuth(); if (a) lsSet(AUTH_KEY, { ...a, exp: 0 }); return api(method, path, body, false); }
+    lsDel(AUTH_KEY); throw new SyncError('signedout', 'Your sign-in expired. Please sign in again.', 401);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new SyncError((data.error && data.error.code) || 'http_' + res.status, (data.error && data.error.message) || 'Request failed (' + res.status + ')', res.status);
+  return data;
+}
+
+/* photos */
+function dataToBlob(url) {
+  const m = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(url || '');
+  if (!m) throw new SyncError('bad_image', 'Unreadable photo', 400);
+  const bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: m[1] });
+}
+async function toJpegBlob(url) {
+  try {
+    const img = await loadImage(url);
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
+    c.getContext('2d').drawImage(img, 0, 0);
+    return dataToBlob(c.toDataURL('image/jpeg', 0.85));
+  } catch (e) { throw new SyncError('bad_image', 'A photo is in a format that cannot be uploaded.', 400); }
+}
+async function uploadImage(im) {
+  let blob = dataToBlob(im.data);
+  if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) blob = await toJpegBlob(im.data);
+  const up = await api('POST', '/photos/upload-url', { contentType: blob.type });
+  const form = new FormData();
+  Object.entries(up.fields).forEach(([k, v]) => form.append(k, v));
+  form.append('file', blob);
+  let res;
+  try { res = await fetch(up.url, { method: 'POST', body: form }); } catch (e) { throw new SyncError('network', 'offline'); }
+  if (!res.ok) throw new SyncError('upload_failed', 'Photo upload failed (' + res.status + ').', res.status);
+  return up.key;
+}
+const blobToDataUrl = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+async function downloadImage(url) {
+  try { const r = await fetch(url); if (!r.ok) return null; return await blobToDataUrl(await r.blob()); } catch (e) { return null; }
+}
+
+/* push and pull */
+async function settle(id, startedAt, patch) {
+  const cur = await dbGet(id);
+  if (!cur || cur.updatedAt !== startedAt) return;   // edited again while syncing: stays queued
+  cur.dirty = 0; delete cur.syncError;
+  if (patch && patch.updatedAt) cur.updatedAt = patch.updatedAt;
+  await dbPut(cur);
+}
+async function adoptRemote(r, force) {
+  const local = await dbGet(r.id);
+  if (!force && local && (local.dirty || local.updatedAt >= r.updatedAt)) return false;
+  const keys = Array.isArray(r.images) ? r.images : [];
+  const old = local ? normImages(local.images) : [];
+  const images = r.deletedAt ? [] : keys.map((key, i) => {
+    const prev = old.find(x => x.key === key);
+    return { lid: prev ? prev.lid : lid(), key, data: prev && prev.data, url: r.imageUrls && r.imageUrls[i] };
+  });
+  await dbPut({ id: r.id, date: r.date, text: r.text || '', createdAt: r.createdAt, updatedAt: r.updatedAt, ...(r.deletedAt ? { deletedAt: r.deletedAt } : {}), images, dirty: 0 });
+  return true;
+}
+async function pushOne(e) {
+  const startedAt = e.updatedAt;
+  if (e.deletedAt) {
+    let res = null;
+    try { res = await api('DELETE', '/entries/' + encodeURIComponent(e.id)); }
+    catch (err) { if (err.status !== 404) throw err; }   // never reached the server, nothing to delete there
+    return settle(e.id, startedAt, res && { updatedAt: res.deletedAt });
+  }
+  const images = normImages(e.images);
+  for (const im of images) {
+    if (im.key) continue;
+    im.key = await uploadImage(im);
+    const cur = await dbGet(e.id);                     // remember the key right away so a retry never re-uploads
+    if (cur) { const t = normImages(cur.images); const m = t.find(x => x.lid === im.lid); if (m) { m.key = im.key; cur.images = t; await dbPut(cur); } }
+  }
+  const res = await api('PUT', '/entries/' + encodeURIComponent(e.id), { date: e.date, text: e.text || '', images: images.map(i => i.key), createdAt: e.createdAt, updatedAt: e.updatedAt });
+  if (res.applied) return settle(e.id, startedAt, res.entry);
+  const cur = await dbGet(e.id);
+  if (cur && cur.updatedAt === startedAt && res.entry) await adoptRemote(res.entry, true);   // someone else's newer version wins
+}
+async function pull() {
+  const since = syncState().since || '';
+  let cursor = null, maxU = since, changed = 0;
+  do {
+    const res = await api('GET', '/entries?since=' + encodeURIComponent(since) + '&limit=100' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+    for (const r of res.entries || []) { if (await adoptRemote(r)) changed++; if (r.updatedAt > maxU) maxU = r.updatedAt; }
+    cursor = res.nextCursor;
+  } while (cursor);
+  patchSyncState({ since: maxU });
+  return changed;
+}
+async function hydrate() {
+  const lacking = async () => (await dbAll()).filter(e => !e.deletedAt && normImages(e.images).some(i => i.key && !i.data));
+  let list = await lacking();
+  if (!list.length) return;
+  const fill = async (entry, fresh) => {
+    const cur = await dbGet(entry.id); if (!cur) return;
+    const imgs = normImages(cur.images); let did = false;
+    for (const im of imgs) {
+      if (im.data || !im.key) continue;
+      const f = fresh && fresh.find(x => x.id === cur.id);
+      if (f) { const j = (f.images || []).indexOf(im.key); if (j >= 0 && f.imageUrls) im.url = f.imageUrls[j]; }
+      if (!im.url) continue;
+      const d = await downloadImage(im.url);
+      if (d) { im.data = d; delete im.url; did = true; }
+    }
+    cur.images = imgs; await dbPut(cur);
+    return did;
+  };
+  for (const e of list) await fill(e, null);
+  list = await lacking();
+  const dates = [...new Set(list.map(e => e.date))];
+  for (const d of dates) {
+    let fresh = [];
+    try { fresh = (await api('GET', '/entries?date=' + d + '&limit=100')).entries || []; } catch (err) { if (err.code === 'network' || err.code === 'signedout') throw err; continue; }
+    for (const e of list.filter(x => x.date === d)) await fill(e, fresh);
+  }
+}
+
+/* orchestration */
+let syncing = false, syncAgain = false, status = 'off', syncTimer = null, lastError = '';
+async function sync(manual) {
+  if (!isConnected()) { setStatus('off'); return; }
+  if (syncing) { syncAgain = true; return; }
+  if (!manual && navigator.onLine === false) { setStatus('offline'); return; }
+  syncing = true; setStatus('syncing'); lastError = '';
+  let bad = 0;
+  try {
+    const dirty = (await dbAll()).filter(e => e.dirty).sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+    for (const e of dirty) {
+      try { await pushOne(e); }
+      catch (err) {
+        if (err.code === 'network' || err.code === 'signedout' || err.code === 'config') throw err;
+        bad++; lastError = err.message;
+        const cur = await dbGet(e.id); if (cur) { cur.syncError = err.message; await dbPut(cur); }
+      }
+    }
+    await pull();
+    await hydrate();
+    patchSyncState({ last: Date.now() });
+    setStatus(bad ? 'problem' : 'ok');
+  } catch (err) {
+    if (err.code === 'signedout') { setStatus('signedout'); lastError = err.message; }
+    else if (err.code === 'network') setStatus('offline');
+    else { lastError = err.message; setStatus('problem'); }
+  } finally {
+    syncing = false;
+    await render();
+    if (syncAgain) { syncAgain = false; scheduleSync(300); }
+  }
+  return status;
+}
+function scheduleSync(ms) {
+  if (!isConnected()) { updateChip(); return; }
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => sync(), ms == null ? 700 : ms);
+  updateChip();
+}
+function setStatus(s) { status = s; updateChip(); }
+async function updateChip() {
+  const chip = $('#syncChip'); if (!chip) return;
+  let waiting = 0;
+  try { waiting = (await dbAll()).filter(e => e.dirty).length; } catch (e) { /* ignore */ }
+  const w = waiting ? `${waiting} waiting` : '';
+  let s = status, label;
+  if (!isConnected()) { s = status === 'signedout' ? 'signedout' : 'off'; label = s === 'signedout' ? 'Signed out' : 'Sync off'; }
+  else if (s === 'syncing') label = 'Syncing…';
+  else if (s === 'offline') label = w ? `Offline · ${w}` : 'Offline';
+  else if (s === 'problem') label = 'Sync problem';
+  else if (s === 'signedout') label = 'Signed out';
+  else { s = 'ok'; label = w || 'Synced'; }
+  chip.dataset.s = s; chip.textContent = label;
+  chip.setAttribute('aria-label', `Sync status: ${label}. Open sync settings.`);
+}
+
+/* sync settings dialog */
+function fmtAgo(t) {
+  if (!t) return 'Not synced yet.';
+  const m = Math.round((Date.now() - t) / 60000);
+  return 'Last synced ' + (m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(t).toLocaleString());
+}
+function openConn() {
+  const c = conf(), st = syncState(), on = isConnected();
+  $('#cApi').value = c.apiUrl; $('#cClient').value = c.clientId; $('#cEmail').value = st.email || ''; $('#cPass').value = '';
+  $('#connErr').textContent = on ? lastError : '';
+  $('#connAdv').open = !(c.apiUrl && c.clientId);
+  $('#connIn').hidden = !on; $('#connOut').hidden = on;
+  $('#connGo').hidden = on; $('#connSync').hidden = !on; $('#connOutBtn').hidden = !on;
+  $('#connWho').textContent = on ? 'Signed in as ' + (st.email || 'your account') : '';
+  $('#connLast').textContent = on ? fmtAgo(st.last) : '';
+  if (!$('#connDlg').open) $('#connDlg').showModal();
+}
+async function doSignIn() {
+  const err = $('#connErr'); err.textContent = '';
+  const apiUrl = $('#cApi').value.trim(), clientId = $('#cClient').value.trim();
+  const email = $('#cEmail').value.trim(), pass = $('#cPass').value;
+  if (!/^https:\/\/[^\s/]+/.test(apiUrl)) { err.textContent = 'The API address must start with https://'; return; }
+  if (!clientId) { err.textContent = 'Enter the app client ID.'; return; }
+  if (!email || !pass) { err.textContent = 'Enter your email and password.'; return; }
+  lsSet(CONN_KEY, { apiUrl: apiUrl.replace(/\/+$/, ''), clientId });
+  const btn = $('#connGo'); btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const claims = await signIn(email, pass);
+    const st = syncState();
+    if (st.sub && claims.sub && st.sub !== claims.sub) {
+      const n = (await dbAll()).filter(e => !e.deletedAt).length;
+      if (n) {
+        const ok = await ask('Different account', 'Entries on this device belong to another account. Signing in will erase them from this device first. Export a backup if you need them.', 'Erase and sign in');
+        if (!ok) { lsDel(AUTH_KEY); return; }
+      }
+      await dbClear(); lsSet(SYNC_KEY, {});
+    }
+    patchSyncState({ sub: claims.sub, email: claims.email || email });
+    $('#connDlg').close();
+    toast('Signed in. Syncing…');
+    await sync(true);
+  } catch (e) {
+    err.textContent = ({
+      NotAuthorizedException: 'Wrong email or password.', UserNotFoundException: 'Wrong email or password.',
+      PasswordResetRequiredException: 'A password reset is required. Ask your administrator.',
+      UserNotConfirmedException: 'This account is not confirmed yet.', TooManyRequestsException: 'Too many attempts. Wait a minute and try again.',
+      LimitExceededException: 'Too many attempts. Wait a minute and try again.'
+    })[e.code] || e.message || 'Could not sign in.';
+  } finally { btn.disabled = false; btn.textContent = 'Sign in'; $('#cPass').value = ''; render(); updateChip(); }
+}
+async function doSignOut() {
+  const waiting = (await dbAll()).filter(e => e.dirty).length;
+  if (waiting && !(await ask('Sign out?', `${waiting} entr${waiting === 1 ? 'y has' : 'ies have'} not synced yet. They stay on this device and sync when you sign in again.`, 'Sign out'))) return;
+  lsDel(AUTH_KEY); status = 'off'; $('#connDlg').close(); updateChip(); toast('Signed out');
+}
+
+/* ---------- Events ---------- */
+function setViewDate(d) {
+  if (!isDate(d)) return;
+  viewDate = d > today() ? today() : d;
+  render();
+}
+function bind() {
+  $('#prevDay').onclick = () => setViewDate(addDays(viewDate, -1));
+  $('#nextDay').onclick = () => setViewDate(addDays(viewDate, 1));
+  $('#dateInput').onchange = e => setViewDate(e.target.value);
+
+  const text = $('#text');
+  text.addEventListener('input', () => { saveDraft(); autosize(text); setMsg(''); });
+  text.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); saveEntry(); } });
+  $('#takeBtn').onclick = () => $('#takeInput').click();
+  $('#pickBtn').onclick = () => $('#pickInput').click();
+  ['#takeInput', '#pickInput'].forEach(s => $(s).addEventListener('change', async e => { await addFiles(e.target.files); e.target.value = ''; }));
+  $('#pending').addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]'); if (!b) return;
+    pending.splice(+b.dataset.i, 1); renderPending();
+  });
+  $('#save').onclick = saveEntry;
+
+  $('#entries').addEventListener('click', e => {
+    const ed = e.target.closest('button[data-edit]'); if (ed) { openEdit(ed.dataset.edit); return; }
+    const v = e.target.closest('button[data-view]'); if (v) viewPhoto(v.dataset.view);
+  });
+  $('#editForm').onsubmit = e => { e.preventDefault(); saveEdit(); };
+  $('#eCancel').onclick = () => $('#editDlg').close();
+  $('#eDel').onclick = deleteEntry;
+  $('#ePhotos').addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]'); if (!b) return;
+    editImages.splice(+b.dataset.i, 1); renderEditPhotos();
+  });
+  $('#viewClose').onclick = () => $('#viewDlg').close();
+  $('#viewDlg').addEventListener('click', e => { if (e.target === $('#viewDlg')) $('#viewDlg').close(); });
+
+  $('#syncChip').onclick = openConn;
+  $('#syncBtn').onclick = openConn;
+  $('#connForm').onsubmit = e => { e.preventDefault(); doSignIn(); };
+  $('#connClose').onclick = () => $('#connDlg').close();
+  $('#connSync').onclick = async () => { $('#connErr').textContent = ''; await sync(true); $('#connErr').textContent = lastError; $('#connLast').textContent = fmtAgo(syncState().last); };
+  $('#connOutBtn').onclick = doSignOut;
+  window.addEventListener('online', () => scheduleSync(300));
+  window.addEventListener('offline', () => { if (isConnected()) setStatus('offline'); });
+  setInterval(() => { if (!document.hidden && isConnected()) sync(); }, 60000);
+  $('#expBtn').onclick = exportBackup;
+  $('#impBtn').onclick = () => $('#impInput').click();
+  $('#impInput').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) importBackup(f); e.target.value = ''; };
+  $('#eraseBtn').onclick = async () => {
+    const ok = await ask('Erase all data?', isConnected()
+      ? 'This clears this device only. Copies already synced stay in your cloud account and come back on the next sync. Entries still waiting to sync are lost.'
+      : 'This deletes every entry and photo on this device. Export a backup first if you want a copy.', 'Erase from this device');
+    if (!ok) return;
+    try { await dbClear(); } catch (e) { toast('Could not erase data.'); return; }
+    patchSyncState({ since: '' }); clearDraft(); $('#text').value = ''; pending = []; renderPending(); autosize($('#text'));
+    await render();
+    toast('All data erased');
+  };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (viewDate > today()) viewDate = today(); render(); scheduleSync(300); } });
+}
+
+/* ---------- Init ---------- */
+async function migrate() {
+  try {
+    for (const e of await dbAll()) {
+      const imgs = normImages(e.images);
+      const changed = e.dirty === undefined || (e.images || []).some(i => typeof i === 'string' || !i.lid);
+      if (changed) { e.images = imgs; if (e.dirty === undefined) e.dirty = 1; await dbPut(e); }
+    }
+  } catch (err) { /* ignore */ }
+}
+async function init() {
+  useMemory = !(await openDb());
+  bind();
+  $('#text').value = loadDraft();
+  autosize($('#text'));
+  renderPending();
+  await migrate();
+  await purgeOldDeleted();
+  await render();
+  setStatus(isConnected() ? 'syncing' : 'off');
+  scheduleSync(200);
+  if (useMemory) toast('Storage is blocked in this browser, so entries are kept only until you close the tab.');
+}
+init();
+})();
+</script>
+</body>
+</html>

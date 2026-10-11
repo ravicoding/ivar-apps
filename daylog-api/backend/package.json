@@ -1,0 +1,22 @@
+{
+  "name": "daylog-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lambda API that stores Daylog entries in DynamoDB and photos in S3",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@aws-sdk/s3-presigned-post": "^3.600.0",
+    "@aws-sdk/s3-request-presigner": "^3.600.0",
+    "@aws-sdk/util-dynamodb": "^3.600.0"
+  },
+  "devDependencies": {
+    "aws-sdk-client-mock": "^4.0.0"
+  }
+}
