@@ -6,6 +6,7 @@
 | `web/daylog/` | Daylog (Beta): daily activity log with photos, offline-first, syncs to the API (`daylog.html`) |
 | `web/daybook/` | Daybook: nightly finance log (single file, stores data in the browser) |
 | `daylog-api/` | AWS SAM backend for Daylog: Lambda, API Gateway, DynamoDB, S3, Cognito. See its README |
+| `market-pulse/` | Market Pulse: stock news and US economic calendar (AWS SAM: scheduled Lambda, DynamoDB, HTTP API). Live at marketpulse.ivarsolutions.net. See its README |
 
 ## Deploy the web pages
 

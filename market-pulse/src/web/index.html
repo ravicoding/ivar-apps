@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Style: Broadsheet (financial newspaper: salmon paper, serif headlines, column rules) */
+:root {
+  --paper: #fdf0e3;
+  --surface: #f8e4d0;
+  --ink: #2b2723;
+  --ink-2: #5a524a;
+  --ink-3: #857a6f;
+  --rule: #d9c3ad;
+  --rule-strong: #2b2723;
+  --session: #ecd2b8;
+  --session-ext: #f4e1cd;
+  --link: #0f5499;
+  --signal: #a3241c;
+  --signal-soft: #f5d2c4;
+  --bar: #8a6f58;
+  --display: "Playfair Display", "Times New Roman", Georgia, serif;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1c1916; --surface: #25211d; --ink: #f1e6da; --ink-2: #c3b5a6; --ink-3: #8f8275;
+    --rule: #3d362f; --rule-strong: #f1e6da; --session: #3a3029; --session-ext: #2b2520;
+    --link: #8dbcf0; --signal: #ef7a6e; --signal-soft: #4a2622; --bar: #b0957d; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.55 var(--serif); font-variant-numeric: oldstyle-nums proportional-nums;
+}
+a { color: var(--link); }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 28px; }
+
+/* publisher line */
+.company { border-bottom: 1px solid var(--rule); }
+.company-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; }
+.company a { color: var(--ink-2); text-decoration: none; font: 600 11px var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.company-name { display: inline-flex; align-items: center; gap: 8px; }
+.company-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid currentColor; font-size: 9px; letter-spacing: 0; }
+.company a:hover { color: var(--ink); }
+
+/* masthead */
+.top {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 12px;
+  padding: 26px 0 12px; border-bottom: 4px double var(--rule-strong);
+}
+.brand {
+  grid-column: 2; grid-row: 1; margin: 0; text-align: center;
+  font: 900 clamp(38px, 6vw, 64px)/1 var(--display); letter-spacing: -.01em;
+}
+.daynav { grid-column: 1; grid-row: 1; display: flex; align-items: center; gap: 4px; justify-self: start; }
+.daynav button { border: 0; background: none; cursor: pointer; font: 22px/1 var(--display); padding: 0 6px; color: var(--ink); }
+.daynav button:disabled { opacity: .3; cursor: default; }
+.daynav input[type=date] { border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: 600 13px var(--sans); padding: 2px 4px; }
+.status { grid-column: 3; grid-row: 1; justify-self: end; color: var(--ink-3); font: italic 13px var(--serif); align-self: center; }
+.refresh {
+  grid-column: 3; grid-row: 1; justify-self: end; align-self: end;
+  border: 1px solid var(--ink); background: transparent; color: var(--ink); padding: 4px 12px;
+  cursor: pointer; font: 600 11px var(--sans); letter-spacing: .12em; text-transform: uppercase;
+}
+.refresh:hover { background: var(--ink); color: var(--paper); }
+.top .status { align-self: start; }
+
+/* dateline + ribbon */
+.day-head { margin: 10px 0 0; padding-bottom: 8px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.day-head h2 { font: 600 14px var(--sans); margin: 0; letter-spacing: .14em; text-transform: uppercase; }
+.day-head .sub { color: var(--ink-2); font: italic 15px var(--serif); }
+.ribbon { margin: 16px 0 4px; position: relative; }
+.ribbon svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ribbon .hour { font: 11px var(--sans); fill: var(--ink-3); }
+.ribbon .sess { font: 700 10px var(--sans); fill: var(--ink-2); letter-spacing: .1em; text-transform: uppercase; }
+.ribbon .mk-label { font: 600 13px var(--serif); fill: var(--ink); }
+.ribbon .mk-time { font: italic 12px var(--serif); fill: var(--ink-2); }
+.ribbon .bar { fill: var(--bar); cursor: pointer; }
+.ribbon .bar:hover, .ribbon .bar.on { fill: var(--link); }
+.ribbon-note { font: italic 14px var(--serif); color: var(--ink-3); min-height: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+.ribbon-note button { border: 0; background: none; color: var(--link); cursor: pointer; padding: 0; text-decoration: underline; font: inherit; }
+
+/* digest as lead article */
+.digest { margin: 22px 0 4px; padding: 0 0 18px; border-bottom: 1px solid var(--rule-strong); }
+.digest h3 { margin: 0 0 8px; font: 700 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--signal); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.digest .times button { border: 0; border-bottom: 1px solid transparent; background: transparent; padding: 0 2px; font: 600 11px var(--sans); cursor: pointer; color: var(--ink-3); letter-spacing: .06em; }
+.digest .times button[aria-pressed=true] { color: var(--ink); border-bottom-color: var(--ink); }
+.digest .body { columns: 2 320px; column-gap: 36px; column-rule: 1px solid var(--rule); font: 17px/1.6 var(--serif); }
+.digest .body p:first-child { column-span: all; font: 700 clamp(24px, 3.2vw, 34px)/1.15 var(--display); margin: 0 0 14px; }
+.digest .body p { margin: 0 0 8px; }
+.digest .body ul { margin: 0 0 10px; padding-left: 18px; }
+.digest .body li { margin: 3px 0; break-inside: avoid; }
+
+/* main grid with column rule */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 0; margin: 22px 0 60px; }
+.grid > main { padding-right: 32px; border-right: 1px solid var(--rule); }
+.grid > aside { padding-left: 32px; }
+section > h3 { font: 700 12px var(--sans); letter-spacing: .16em; text-transform: uppercase; margin: 0 0 12px; padding-top: 6px; border-top: 2px solid var(--rule-strong); }
+.tools { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.seg { display: inline-flex; gap: 14px; }
+.seg button { border: 0; background: none; padding: 2px 0; cursor: pointer; font: 600 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); border-bottom: 2px solid transparent; }
+.seg button[aria-pressed=true] { color: var(--ink); border-bottom-color: var(--signal); }
+.search { flex: 1 1 180px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; padding: 4px 2px; font: italic 15px var(--serif); min-width: 0; }
+.count { color: var(--ink-3); font: 12px var(--sans); }
+
+.news { list-style: none; margin: 0; padding: 0; }
+.news li { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; padding: 16px 0; border-top: 1px solid var(--rule); }
+.news time { color: var(--ink-3); font: 600 12px var(--sans); padding-top: 5px; letter-spacing: .04em; }
+.news .hl { font: 700 21px/1.22 var(--display); color: var(--ink); text-decoration: none; }
+.news li:first-child .hl { font-size: 30px; line-height: 1.12; }
+.news .hl:hover { color: var(--link); }
+.news .sum { margin: 6px 0 0; color: var(--ink-2); max-width: 68ch; }
+.news .src { font: 600 11px var(--sans); color: var(--ink-3); margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; letter-spacing: .1em; text-transform: uppercase; }
+.tag { font: 700 11px var(--sans); letter-spacing: .04em; padding: 0 6px; background: var(--session); color: var(--ink); }
+.tag.watch { background: var(--signal-soft); color: var(--signal); }
+.more { margin-top: 14px; border: 1px solid var(--ink); background: transparent; padding: 6px 16px; cursor: pointer; font: 600 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+.empty { padding: 24px 0; color: var(--ink-2); border-top: 1px solid var(--rule); font-style: italic; }
+
+/* sidebar */
+aside section + section { margin-top: 34px; }
+.econ-day { margin: 14px 0 4px; font: 700 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; display: flex; gap: 8px; align-items: baseline; }
+.econ-day .rel { color: var(--signal); font: italic 400 13px var(--serif); text-transform: none; letter-spacing: 0; }
+.econ-day.past { color: var(--ink-3); }
+.rel-item { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px dotted var(--rule); }
+.rel-item.past { opacity: .6; }
+.rel-item .t { font: 600 12px var(--sans); color: var(--ink-2); padding-top: 3px; }
+.rel-item .n { font: 600 16px/1.3 var(--serif); }
+.rel-item.high .n::after { content: " ●"; color: var(--signal); font-size: 11px; vertical-align: 2px; }
+.rel-item.today .n { color: var(--signal); }
+.rel-item .v { font-size: 14px; color: var(--ink-2); }
+.rel-item .v b { color: var(--ink); }
+.check { font: 13px var(--sans); color: var(--ink-2); display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.check input { accent-color: var(--signal); }
+
+.earn { list-style: none; padding: 0; margin: 0; }
+.earn li { padding: 9px 0; border-top: 1px dotted var(--rule); font-size: 15px; }
+.earn .sym { font: 700 13px var(--sans); letter-spacing: .06em; margin-right: 8px; }
+.earn .when { color: var(--ink-3); font-style: italic; font-size: 14px; }
+details summary { cursor: pointer; color: var(--link); font: italic 15px var(--serif); padding: 8px 0; }
+.muted { color: var(--ink-3); font-size: 14px; }
+
+.banner { margin: 12px 0 0; padding: 8px 0; border-bottom: 1px solid var(--rule); color: var(--signal); font: italic 15px var(--serif); text-align: center; }
+
+dialog { border: 1px solid var(--ink); background: var(--paper); color: var(--ink); padding: 24px; max-width: 400px; width: calc(100% - 32px); }
+dialog::backdrop { background: rgb(40 30 20 / .45); }
+dialog h3 { margin: 0 0 6px; font: 700 24px var(--display); }
+dialog input { width: 100%; padding: 8px 4px; border: 0; border-bottom: 1px solid var(--ink); background: transparent; margin: 10px 0 16px; }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .grid > main { padding-right: 0; border-right: 0; }
+  .grid > aside { padding-left: 0; order: -1; }
+}
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px; }
+  .top { grid-template-columns: 1fr auto; }
+  .brand { grid-column: 1 / -1; }
+  .daynav { grid-row: 2; grid-column: 1; }
+  .refresh { grid-row: 2; grid-column: 2; }
+  .top .status { grid-row: 3; grid-column: 1 / -1; justify-self: center; }
+  .news li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .news .hl { font-size: 19px; }
+  .news li:first-child .hl { font-size: 25px; }
+  .company-link { display: none; }
+  .ribbon { overflow-x: auto; margin-right: -16px; padding-right: 16px; }
+  .ribbon svg { width: 760px; max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<header class="company">
+  <div class="wrap company-in">
+    <a class="company-name" href="https://www.ivarsolutions.net" aria-label="Ivar Solutions home">
+      <span class="company-mark" aria-hidden="true">IS</span>Ivar Solutions
+    </a>
+    <a class="company-link" href="https://www.ivarsolutions.net">www.ivarsolutions.net</a>
+  </div>
+</header>
+<div class="wrap">
+  <header class="top">
+    <h1 class="brand">Market Pulse</h1>
+    <nav class="daynav" aria-label="Choose day">
+      <button id="prev" aria-label="Previous day">‹</button>
+      <input id="date" type="date" aria-label="Date">
+      <button id="next" aria-label="Next day">›</button>
+    </nav>
+    <span class="status" id="status" aria-live="polite"></span>
+    <button class="refresh" id="refresh">Refresh</button>
+  </header>
+
+  <div id="banner"></div>
+
+  <div class="day-head">
+    <h2 id="dayTitle"></h2>
+    <span class="sub" id="daySub"></span>
+  </div>
+  <div class="ribbon" id="ribbon" aria-label="Timeline of the trading day"></div>
+  <div class="ribbon-note" id="ribbonNote"></div>
+
+  <div id="digest"></div>
+
+  <div class="grid">
+    <main>
+      <section>
+        <h3>News</h3>
+        <div class="tools">
+          <div class="seg" role="group" aria-label="Which news">
+            <button data-scope="all" aria-pressed="true">All</button>
+            <button data-scope="watch" aria-pressed="false">Watchlist</button>
+            <button data-scope="market" aria-pressed="false">Market</button>
+          </div>
+          <input class="search" id="q" type="search" placeholder="Search headlines, sources, tickers">
+          <span class="count" id="count"></span>
+        </div>
+        <ul class="news" id="news"></ul>
+        <div id="moreWrap"></div>
+      </section>
+    </main>
+    <aside>
+      <section>
+        <h3>Economic calendar</h3>
+        <label class="check"><input type="checkbox" id="allRel"> Include weekly jobless claims</label>
+        <div id="econ"></div>
+      </section>
+      <section>
+        <h3>Earnings today</h3>
+        <div id="earn"></div>
+      </section>
+      <section id="ipoWrap" hidden>
+        <h3>IPOs today</h3>
+        <ul class="earn" id="ipo"></ul>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<dialog id="keyDlg">
+  <form method="dialog" id="keyForm">
+    <h3>Enter your access key</h3>
+    <p class="muted" style="margin:0">It was printed when you ran deploy.sh. It's saved in this browser only.</p>
+    <input id="keyInput" type="password" autocomplete="off" required>
+    <button class="refresh" value="ok">Save key</button>
+  </form>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+const TZ = "America/New_York";
+const params = new URLSearchParams(location.search);
+const DEMO = location.protocol === "file:" || params.has("demo");
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+let accessKey = store.get("mw-key");
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const safeUrl = (u) => /^https?:\/\//i.test(u || "") ? u : "#";
+
+/* ---------- dates (always US Eastern) ---------- */
+const etDate = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const addDays = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const longDate = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+const shortDate = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const hhmm = (isoWithOffset) => (isoWithOffset || "").slice(11, 16);
+const toMin = (t) => { const [h, m] = (t || "0:0").split(":").map(Number); return h * 60 + m; };
+const nowMinET = () => { const p = new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date()); return toMin(p); };
+const fmt12 = (min) => { const h = Math.floor(min / 60), m = min % 60; const hh = ((h + 11) % 12) + 1; return `${hh}:${String(m).padStart(2, "0")}${h < 12 ? "am" : "pm"}`; };
+
+/* ---------- state ---------- */
+const S = { date: params.get("date") || etDate(), day: null, econ: [], scope: "all", q: "", windowStart: null, shown: 60, digestIdx: 0 };
+
+/* ---------- data ---------- */
+async function api(path) {
+  if (DEMO) return demoApi(path);
+  const r = await fetch(path, { headers: accessKey ? { "x-access-key": accessKey } : {} });
+  if (r.status === 401) { askKey(); throw new Error("Access key needed"); }
+  if (!r.ok) throw new Error(`Server returned ${r.status}`);
+  return r.json();
+}
+
+async function load() {
+  $("status").textContent = "Loading…";
+  try {
+    const [day, econ] = await Promise.all([
+      api(`api/day?date=${S.date}`),
+      api(`api/econ?from=${addDays(S.date, -3)}&to=${addDays(S.date, 14)}`),
+    ]);
+    S.day = day; S.econ = econ.econ || []; S.digestIdx = 0;
+    render();
+    $("status").textContent = `Updated ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ })} ET`;
+    $("banner").innerHTML = DEMO ? `<div class="banner">Showing sample data. Open this page from your deployed URL to see live news.</div>` : "";
+  } catch (e) {
+    $("status").textContent = "";
+    $("banner").innerHTML = `<div class="banner">Couldn't load data: ${esc(e.message)}. Check your connection and select Refresh.</div>`;
+  }
+}
+
+/* ---------- rendering ---------- */
+function render() {
+  const isToday = S.date === etDate();
+  $("date").value = S.date;
+  $("next").disabled = S.date >= etDate();
+  $("dayTitle").textContent = isToday ? `Today, ${longDate(S.date).split(", ")[1]}` : longDate(S.date);
+  const n = S.day.news.length, wd = new Date(S.date + "T12:00:00Z").getUTCDay();
+  $("daySub").textContent = (wd === 0 || wd === 6) ? "Weekend: markets closed" : `${n} ${n === 1 ? "story" : "stories"} collected`;
+  renderRibbon(isToday);
+  const rb = $("ribbon");  // on narrow screens, scroll the timeline to "now" (or the open)
+  if (rb.scrollWidth > rb.clientWidth) {
+    const m = isToday ? Math.min(Math.max(nowMinET(), 240), 1200) : 570;
+    rb.scrollLeft = ((m - 240) / 960) * rb.scrollWidth - rb.clientWidth / 2;
+  }
+  renderDigest();
+  renderNews();
+  renderEcon();
+  renderEarnings();
+}
+
+function renderRibbon(isToday) {
+  const W = 1000, START = 4 * 60, END = 20 * 60, x = (m) => ((Math.min(Math.max(m, START), END) - START) / (END - START)) * W;
+  const BASE = 122, BAND = 54, BAR_MAX = 32, LY = BASE - BAND + 15;
+  let s = `<svg viewBox="0 -4 ${W} 150" role="img" aria-label="Pre-market, regular session and after-hours, with scheduled events and news volume">`;
+  s += `<rect x="${x(240)}" y="${BASE - BAND}" width="${x(570) - x(240)}" height="${BAND}" fill="var(--session-ext)"/>`;
+  s += `<rect x="${x(570)}" y="${BASE - BAND}" width="${x(960) - x(570)}" height="${BAND}" fill="var(--session)"/>`;
+  s += `<rect x="${x(960)}" y="${BASE - BAND}" width="${x(1200) - x(960)}" height="${BAND}" fill="var(--session-ext)"/>`;
+  s += `<text class="sess" x="${x(570) + 6}" y="${LY}">Open 9:30</text>`;
+  s += `<text class="sess" x="${x(960) - 6}" y="${LY}" text-anchor="end">Close 4:00</text>`;
+  s += `<text class="hour" x="${x(240) + 6}" y="${LY}">Pre-market</text>`;
+  s += `<text class="hour" x="${x(1200) - 6}" y="${LY}" text-anchor="end">After hours</text>`;
+  for (let h = 4; h <= 20; h += 2) s += `<text class="hour" x="${x(h * 60)}" y="${BASE + 18}" text-anchor="${h === 4 ? "start" : h === 20 ? "end" : "middle"}">${fmt12(h * 60).replace(":00", "")}</text>`;
+
+  // news volume, 15-minute buckets
+  const buckets = {};
+  S.day.news.forEach((it) => { const m = toMin(hhmm(it.published_at)); if (m >= START && m < END) { const b = m - (m % 15); buckets[b] = (buckets[b] || 0) + 1; } });
+  const max = Math.max(1, ...Object.values(buckets));
+  const bw = (W / ((END - START) / 15)) - 2;
+  for (const [b, c] of Object.entries(buckets)) {
+    const h = Math.max(3, (c / max) * BAR_MAX), bx = x(+b) + 1;
+    s += `<rect class="bar${S.windowStart === +b ? " on" : ""}" data-b="${b}" x="${bx}" y="${BASE - h}" width="${bw}" height="${h}" tabindex="0" role="button" aria-label="${c} stories at ${fmt12(+b)}"><title>${c} stories, ${fmt12(+b)}</title></rect>`;
+  }
+
+  // scheduled markers
+  const marks = [];
+  econForDay(S.date).forEach((e) => { if (e.importance !== "low" || $("allRel").checked) marks.push({ m: toMin(e.time_et), label: e.key === "NFP" ? "Jobs report" : e.key === "FOMC" ? "Fed decision" : e.key, imp: e.importance }); });
+  const ev = S.day.events.filter((e) => e.type === "earnings");
+  const bmo = ev.filter((e) => /before market open/.test(e.summary)).length, amc = ev.filter((e) => /after market close/.test(e.summary)).length;
+  if (bmo) marks.push({ m: 7 * 60, label: `${bmo} reporting`, sub: "before open" });
+  if (amc) marks.push({ m: 16 * 60 + 15, label: `${amc} reporting`, sub: "after close" });
+  marks.sort((a, b) => a.m - b.m);
+  let lastX = -999, row = 0;
+  marks.forEach((mk) => {
+    const mx = x(mk.m); row = mx - lastX < 110 ? (row + 1) % 2 : 0; lastX = mx;
+    const ty = row ? 34 : 12, anchor = mx > W - 90 ? "end" : mx < 60 ? "start" : "middle";
+    const color = mk.imp === "high" ? "var(--signal)" : "var(--ink-2)";
+    s += `<line x1="${mx}" x2="${mx}" y1="${ty + 6}" y2="${BASE}" stroke="${color}" stroke-width="${mk.imp === "high" ? 2 : 1}" ${mk.imp ? "" : 'stroke-dasharray="3 3"'}/>`;
+    s += `<text class="mk-label" x="${mx}" y="${ty}" text-anchor="${anchor}" ${mk.imp === "high" ? 'style="fill:var(--signal)"' : ""}>${esc(mk.label)} <tspan class="mk-time">${mk.sub ? esc(mk.sub) : fmt12(mk.m)}</tspan></text>`;
+  });
+  if (isToday) { const nm = nowMinET(); if (nm > START && nm < END) s += `<line x1="${x(nm)}" x2="${x(nm)}" y1="${BASE - BAND - 4}" y2="${BASE + 4}" stroke="var(--link)" stroke-width="2"/><circle cx="${x(nm)}" cy="${BASE - BAND - 4}" r="3.5" fill="var(--link)"/>`; }
+  s += `</svg>`;
+  $("ribbon").innerHTML = s;
+  $("ribbon").querySelectorAll(".bar").forEach((r) => {
+    const pick = () => { S.windowStart = S.windowStart === +r.dataset.b ? null : +r.dataset.b; S.shown = 60; renderRibbon(isToday); renderNews(); };
+    r.addEventListener("click", pick);
+    r.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+  $("ribbonNote").innerHTML = S.windowStart == null ? "Bars show how much news arrived every 15 minutes. Select one to read just those stories."
+    : `Showing stories from ${fmt12(S.windowStart)} to ${fmt12(S.windowStart + 15)}. <button id="clearWin">Show all</button>`;
+  const c = $("clearWin"); if (c) c.onclick = () => { S.windowStart = null; renderRibbon(isToday); renderNews(); };
+}
+
+function renderDigest() {
+  const ds = S.day.digests || [];
+  if (!ds.length) { $("digest").innerHTML = ""; return; }
+  const d = ds[S.digestIdx] || ds[0];
+  const lines = esc(d.summary).split(/\n+/).map((l) => l.trim()).filter(Boolean);
+  let html = "", inList = false;
+  for (const l of lines) {
+    const bullet = /^([-•*]|\d+\.)\s+/.test(l);
+    const text = l.replace(/^([-•*]|\d+\.)\s+/, "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    if (bullet && !inList) { html += "<ul>"; inList = true; }
+    if (!bullet && inList) { html += "</ul>"; inList = false; }
+    html += bullet ? `<li>${text}</li>` : `<p>${text}</p>`;
+  }
+  if (inList) html += "</ul>";
+  const times = ds.map((x, i) => `<button data-i="${i}" aria-pressed="${i === S.digestIdx}">${fmt12(toMin(x.sk))}</button>`).join("");
+  $("digest").innerHTML = `<div class="digest"><h3>AI market digest <span class="times">${times}</span></h3><div class="body">${html}</div></div>`;
+  $("digest").querySelectorAll("button[data-i]").forEach((b) => b.onclick = () => { S.digestIdx = +b.dataset.i; renderDigest(); });
+}
+
+function filteredNews() {
+  const watch = new Set(S.day.watchlist || []);
+  const q = S.q.toLowerCase();
+  return S.day.news.filter((n) => {
+    if (S.scope === "watch" && !(n.symbols || []).some((s) => watch.has(s)) && !(n.category || "").startsWith("company:")) return false;
+    if (S.scope === "market" && (n.category || "").startsWith("company:")) return false;
+    if (S.windowStart != null) { const m = toMin(hhmm(n.published_at)); if (m < S.windowStart || m >= S.windowStart + 15) return false; }
+    if (q && !`${n.headline} ${n.summary} ${n.source} ${(n.symbols || []).join(" ")}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderNews() {
+  const list = filteredNews(), watch = new Set(S.day.watchlist || []);
+  $("count").textContent = `${list.length} of ${S.day.news.length}`;
+  if (!list.length) {
+    $("news").innerHTML = `<li class="empty" style="display:block">${S.day.news.length ? "No stories match. Clear the search or pick All." : "No news collected for this day yet. The collector runs every 15 minutes on weekdays from 7am."}</li>`;
+    $("moreWrap").innerHTML = ""; return;
+  }
+  $("news").innerHTML = list.slice(0, S.shown).map((n) => {
+    const tags = (n.symbols || []).slice(0, 6).map((s) => `<span class="tag${watch.has(s) ? " watch" : ""}">${esc(s)}</span>`).join("");
+    return `<li><time datetime="${esc(n.published_at)}">${fmt12(toMin(hhmm(n.published_at)))}</time><div>
+      <a class="hl" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.headline)}</a>
+      ${n.summary && n.summary !== n.headline ? `<p class="sum">${esc(n.summary)}</p>` : ""}
+      <div class="src">${esc(n.source || "")}${tags}</div></div></li>`;
+  }).join("");
+  $("moreWrap").innerHTML = list.length > S.shown ? `<button class="more" id="more">Show ${Math.min(60, list.length - S.shown)} more</button>` : "";
+  const m = $("more"); if (m) m.onclick = () => { S.shown += 60; renderNews(); };
+}
+
+const econForDay = (d) => S.econ.filter((e) => e.date === d);
+
+function renderEcon() {
+  const today = etDate(), showAll = $("allRel").checked;
+  const items = S.econ.filter((e) => showAll || e.importance !== "low");
+  if (!items.length) { $("econ").innerHTML = `<p class="muted">No releases scheduled in this window. Add a FRED API key when deploying to fill this in.</p>`; return; }
+  const byDay = {};
+  items.forEach((e) => (byDay[e.date] ||= []).push(e));
+  let html = "";
+  for (const d of Object.keys(byDay).sort()) {
+    const past = d < today, rel = d === today ? "Today" : d === addDays(today, 1) ? "Tomorrow" : "";
+    html += `<div class="econ-day${past ? " past" : ""}">${shortDate(d)} <span class="rel">${rel}</span></div>`;
+    byDay[d].sort((a, b) => a.time_et.localeCompare(b.time_et)).forEach((e) => {
+      const released = past || (d === today && nowMinET() >= toMin(e.time_et));
+      const vals = (e.values || []).map((v) => `<div class="v">${esc(v.label)}: <b>${esc(v.latest)}</b> <span>(${esc(v.period)})</span></div>`).join("");
+      const lead = released ? "" : `<div class="v">Previous reading:</div>`;
+      html += `<div class="rel-item ${esc(e.importance)}${past ? " past" : ""}${d === today ? " today" : ""}">
+        <div class="t">${fmt12(toMin(e.time_et))}</div>
+        <div><div class="n">${esc(e.label)}</div>${vals ? lead + vals : ""}</div></div>`;
+    });
+  }
+  $("econ").innerHTML = html;
+}
+
+function renderEarnings() {
+  const watch = new Set(S.day.watchlist || []);
+  const ev = S.day.events.filter((e) => e.type === "earnings");
+  const mine = ev.filter((e) => watch.has(e.symbol)), rest = ev.filter((e) => !watch.has(e.symbol));
+  const row = (e) => {
+    const m = e.summary.match(/earnings (before market open|after market close|during market hours|time TBA)/);
+    return `<li><span class="sym">${esc(e.symbol)}</span><span class="when">${esc(m ? m[1] : "")}</span><div class="muted">${esc(e.summary.replace(/^.*?earnings [^.]*\.\s*/, ""))}</div></li>`;
+  };
+  let html = mine.length ? `<ul class="earn">${mine.map(row).join("")}</ul>` : `<p class="muted">None of your watchlist reports today.</p>`;
+  if (rest.length) html += `<details><summary>${rest.length} other ${rest.length === 1 ? "company" : "companies"} reporting</summary><ul class="earn">${rest.map(row).join("")}</ul></details>`;
+  $("earn").innerHTML = html;
+  const ipos = S.day.events.filter((e) => e.type === "ipo");
+  $("ipoWrap").hidden = !ipos.length;
+  $("ipo").innerHTML = ipos.map((e) => `<li>${esc(e.summary.replace(/^IPO:\s*/, ""))}</li>`).join("");
+}
+
+/* ---------- access key ---------- */
+function askKey() { const d = $("keyDlg"); if (!d.open) { $("keyInput").value = accessKey; d.showModal(); } }
+$("keyForm").addEventListener("submit", () => { accessKey = $("keyInput").value.trim(); store.set("mw-key", accessKey); setTimeout(load, 0); });
+
+/* ---------- controls ---------- */
+const go = (d) => { S.date = d; S.windowStart = null; S.shown = 60; const u = new URL(location); u.searchParams.set("date", d); history.replaceState(null, "", u); load(); };
+$("prev").onclick = () => go(addDays(S.date, -1));
+$("next").onclick = () => go(addDays(S.date, 1));
+$("date").onchange = (e) => e.target.value && go(e.target.value);
+$("date").max = etDate();
+$("refresh").onclick = load;
+$("q").addEventListener("input", (e) => { S.q = e.target.value; S.shown = 60; renderNews(); });
+document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => {
+  S.scope = b.dataset.scope; S.shown = 60;
+  document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  renderNews();
+});
+$("allRel").onchange = () => { renderEcon(); renderRibbon(S.date === etDate()); };
+setInterval(() => { if (document.visibilityState === "visible" && S.date === etDate() && !DEMO) load(); }, 5 * 60 * 1000);
+
+/* ---------- sample data (file:// or ?demo) ---------- */
+function demoApi(path) {
+  const d = S.date, at = (t) => `${d}T${t}:00-04:00`;
+  if (path.startsWith("api/econ")) {
+    const t = etDate(), e = (off, key, label, time, imp, values) => ({ date: addDays(t, off), sk: `${addDays(t, off)}#${key}`, key, label, time_et: time, importance: imp, values });
+    return Promise.resolve({ econ: [
+      e(-2, "CLAIMS", "Initial jobless claims", "08:30", "low", [{ label: "Initial claims", latest: "231K", prior: "226K", period: "week of Oct 3" }]),
+      e(0, "PPI", "PPI (producer prices)", "08:30", "medium", [{ label: "PPI final demand", latest: "+0.2% m/m, 2.6% y/y", period: "Aug 2026" }]),
+      e(2, "CPI", "CPI inflation", "08:30", "high", [{ label: "Headline CPI", latest: "+0.3% m/m, 2.9% y/y", period: "Aug 2026" }, { label: "Core CPI", latest: "+0.3% m/m, 3.1% y/y", period: "Aug 2026" }]),
+      e(3, "RETAIL", "Retail sales", "08:30", "medium", [{ label: "Retail sales", latest: "+0.6% m/m", period: "Aug 2026" }]),
+      e(4, "NFP", "Nonfarm payrolls & unemployment rate", "08:30", "high", [{ label: "Payrolls", latest: "+142K jobs", period: "Sep 2026" }, { label: "Unemployment rate", latest: "4.3%", period: "Sep 2026" }]),
+      e(9, "JOLTS", "Job openings (JOLTS)", "10:00", "medium", [{ label: "Job openings", latest: "7.18M", period: "Aug 2026" }]),
+      e(16, "FOMC", "Fed interest-rate decision", "14:00", "high", [{ label: "Fed funds target range", latest: "3.75–4%", period: "Oct 9, 2026" }]),
+    ] });
+  }
+  const H = [["06:12","Reuters","Futures edge higher as traders look ahead to inflation data","Stock futures rose in early trading as investors positioned for this week's consumer price report and the start of bank earnings.",""],
+    ["07:45","CNBC","Apple supplier says chip orders remain strong into holiday quarter","The supplier raised its revenue outlook, citing demand for new devices.","AAPL"],
+    ["08:31","MarketWatch","Producer prices rise 0.2% in September, in line with forecasts","Wholesale inflation cooled slightly from the prior month, easing some pressure on the Fed.",""],
+    ["09:02","Bloomberg","Treasury yields slip after PPI; 10-year near 4.05%","Bond prices gained after the producer price data came in as expected.",""],
+    ["09:41","Reuters","Nvidia shares climb after new data-center partnership","The chipmaker announced a multi-year supply deal with a cloud provider.","NVDA"],
+    ["09:48","Yahoo","Oil falls 1% as supply concerns ease","Crude prices dropped after reports of higher output from major producers.",""],
+    ["10:05","Reuters","Microsoft expands AI services in Europe","The company said it will open new data centers in three countries.","MSFT"],
+    ["10:20","CNBC","Small caps outperform as rate-cut bets build","The Russell 2000 gained more than 1% in morning trading.",""],
+    ["11:02","Bloomberg","Amazon to hire 250,000 seasonal workers","The retailer's holiday hiring plan matches last year's.","AMZN"],
+    ["11:40","MarketWatch","Gold hovers near record as dollar weakens","",""],
+  ];
+  return Promise.resolve({ date: d, watchlist: ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL"],
+    news: H.map(([t, src, hl, sum, sym], i) => ({ sk: `${d}T${t}#${i}`, published_at: at(t), source: src, headline: hl, summary: sum, url: "https://example.com", symbols: sym ? [sym] : [], category: sym ? `company:${sym}` : "general" })).reverse(),
+    events: [
+      { type: "earnings", symbol: "JPM", summary: "JPM reports Q3 2026 earnings before market open. EPS est 4.9, actual 5.1; revenue est $43.00B, actual $44.10B." },
+      { type: "earnings", symbol: "WFC", summary: "WFC reports Q3 2026 earnings before market open. EPS est 1.52; revenue est $20.80B." },
+      { type: "earnings", symbol: "AAPL", summary: "AAPL reports Q4 2026 earnings after market close. EPS est 1.81; revenue est $102.00B." },
+      { type: "ipo", summary: "IPO: Acme Robotics (ACME) on NASDAQ, status expected, price 18-20, raising $250.00M." },
+    ],
+    digests: [{ sk: "12:00", summary: "Stocks are modestly higher as in-line producer prices keep rate-cut hopes alive.\n- PPI rose 0.2% in September, matching forecasts; Treasury yields slipped.\n- Nvidia gained on a new data-center supply deal; chip stocks led the Nasdaq.\n- Oil fell about 1% as supply worries eased.\n- Banks kick off earnings: JPMorgan beat on EPS and revenue.\nEconomy: PPI out this morning; CPI on Wednesday and the jobs report on Friday.\nWatchlist: Apple reports after the close." }],
+  });
+}
+
+load();
+})();
+</script>
+</body>
+</html>

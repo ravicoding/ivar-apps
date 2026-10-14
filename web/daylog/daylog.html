@@ -8,17 +8,21 @@
 <meta name="color-scheme" content="light dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
 <style>
+  /* Broadsheet style, matching ivarsolutions.net and Market Pulse */
   :root {
-    --bg: #F0F4F2; --surface: #FFFFFF; --surface2: #E2EAE6; --ink: #16211E; --muted: #51635D; --line: #C9D5D0;
-    --accent: #1B6B55; --accent-ink: #FFFFFF; --danger: #B3261E;
+    --bg: #fdf0e3; --surface: #fffaf3; --surface2: #f6e1cc; --ink: #2b2723; --muted: #5a524a; --line: #d9c3ad; --rule: #2b2723;
+    --accent: #2b2723; --accent-ink: #fdf0e3; --signal: #a3241c; --link: #0f5499; --ok: #2d6a4f; --danger: #b3261e;
+    --display: "Playfair Display", "Times New Roman", Georgia, serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0E1614; --surface: #16211F; --surface2: #1F2E2B; --ink: #E6EEEB; --muted: #98ABA5; --line: #2A3B37;
-      --accent: #7ED6B2; --accent-ink: #06231A; --danger: #FF8A80;
+      --bg: #1c1916; --surface: #25211d; --surface2: #2f2924; --ink: #f1e6da; --muted: #c3b5a6; --line: #3d362f; --rule: #f1e6da;
+      --accent: #f1e6da; --accent-ink: #1c1916; --signal: #ef7a6e; --link: #8dbcf0; --ok: #7fc8a0; --danger: #ff8a80;
       color-scheme: dark;
     }
   }
@@ -27,129 +31,220 @@
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 1rem; line-height: 1.55; min-height: 100dvh; -webkit-font-smoothing: antialiased;
+    font-family: var(--serif); font-size: clamp(1rem, 0.96rem + 0.2vw, 1.1rem); line-height: 1.55; min-height: 100dvh; -webkit-font-smoothing: antialiased;
   }
   button, input, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; -webkit-tap-highlight-color: transparent; font-family: var(--sans); }
   [hidden] { display: none !important; }
-  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-  h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+  h2 { margin: 0; font: 700 0.78rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
   p { margin: 0; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  .skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--accent); color: var(--accent-ink); padding: 10px 14px; border-radius: 8px; font-weight: 700; }
+  .skip { position: absolute; left: 12px; top: -60px; z-index: 50; background: var(--ink); color: var(--bg); padding: 10px 14px; font: 700 0.85rem var(--sans); }
   .skip:focus { top: 8px; }
 
   body { display: flex; flex-direction: column; }
-  .app { width: 100%; max-width: 560px; margin: 0 auto; flex: 1 0 auto; }
+  .app { width: min(1140px, 100% - clamp(32px, 8vw, 96px)); margin: 0 auto; flex: 1 0 auto; }
 
-  /* Company header and footer, matching ivarsolutions.net */
-  .site-header, .site-footer {
-    --paper: #F2F4F7; --ink: #15233B; --muted: #4F5E77; --line: #CBD3DF; --accent: #1F4FD8;
-    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--paper); color: var(--ink);
-  }
-  @media (prefers-color-scheme: dark) {
-    .site-header, .site-footer { --paper: #0F1726; --ink: #E7ECF5; --muted: #9FADC6; --line: #2A3A5A; --accent: #8AACFF; }
-  }
-  .wrap { width: min(1120px, 100% - clamp(32px, 10vw, 96px)); margin-inline: auto; }
-  .site-header { border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
-  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 14px; }
-  .site-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; text-decoration: none; color: var(--ink); }
-  .site-brand img { width: 52px; height: 52px; border-radius: 8px; padding: 4px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
-  .site-nav { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; padding: 0; list-style: none; font-size: 0.97rem; }
+  /* Company masthead and footer, same as ivarsolutions.net */
+  .wrap { width: min(1140px, 100% - clamp(32px, 8vw, 96px)); margin-inline: auto; }
+  .site-header { background: var(--bg); border-bottom: 4px double var(--rule); padding-top: env(safe-area-inset-top); }
+  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 12px; }
+  .site-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); font: 900 1.6rem/1 var(--display); letter-spacing: -0.01em; }
+  .site-brand img { width: 44px; height: 44px; border-radius: 50%; padding: 3px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
+  .site-nav { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; padding: 0; list-style: none; font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
   .site-nav a { display: inline-block; text-decoration: none; color: var(--muted); padding-block: 4px; border-bottom: 2px solid transparent; }
-  .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
-  .beta-n { margin-left: 4px; padding: 0 6px; border: 1px solid var(--accent); border-radius: 999px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); vertical-align: 1px; }
-  .site-header :focus-visible, .site-footer :focus-visible { outline-color: var(--accent); }
-  .site-footer { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom)); color: var(--muted); font-size: 0.93rem; }
+  .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); }
+  .beta-n { margin-left: 4px; padding: 0 5px; border: 1px solid var(--signal); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; color: var(--signal); vertical-align: 1px; }
+  .site-footer { border-top: 4px double var(--rule); padding-block: 24px calc(24px + env(safe-area-inset-bottom)); color: var(--muted); font: 600 0.72rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
   .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; }
   .site-footer a { color: var(--muted); text-underline-offset: 3px; }
   .site-footer a:hover { color: var(--ink); }
 
-  .top { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 16px 12px; padding-top: calc(10px + env(safe-area-inset-top)); }
-  .top-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
-  .brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
-  .beta { display: inline-block; vertical-align: 2px; margin-left: 6px; padding: 1px 8px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
-  .count { color: var(--muted); font-size: 0.88rem; }
-  .top-right { display: flex; align-items: center; gap: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 0.82rem; font-weight: 700; color: var(--muted); }
-  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-  .chip[data-s="ok"]::before { background: var(--accent); }
+  /* App masthead */
+  .top { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--rule); padding: 14px 0 12px; padding-top: calc(14px + env(safe-area-inset-top)); }
+  .top-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .brand { font: 900 clamp(1.8rem, 1.3rem + 1.6vw, 2.6rem)/1 var(--display); letter-spacing: -0.01em; }
+  .beta { display: inline-block; vertical-align: 6px; margin-left: 8px; padding: 1px 6px; border: 1px solid var(--signal); color: var(--signal); font: 700 0.62rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+  .count { color: var(--muted); font: italic 0.92rem var(--serif); }
+  .top-right { display: flex; align-items: center; gap: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 2px 10px; border: 1px solid var(--line); background: transparent; font: 600 0.7rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .chip[data-s="ok"]::before { background: var(--ok); }
   .chip[data-s="syncing"]::before { background: #C98A00; }
   .chip[data-s="problem"]::before, .chip[data-s="signedout"]::before { background: var(--danger); }
-  .field { display: grid; gap: 4px; font-weight: 700; font-size: 0.9rem; }
-  .field input { height: 46px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-weight: 500; font-size: 1rem; }
-  .field input:focus { outline: 3px solid var(--accent); }
+  .field { display: grid; gap: 4px; font: 700 0.72rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .field input { height: 44px; padding: 0 4px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: 400 1.05rem var(--serif); letter-spacing: 0; text-transform: none; color: var(--ink); }
+  .field input:focus { outline: none; border-bottom: 2px solid var(--signal); }
+  .gbtn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 16px; border: 1px solid var(--rule); background: var(--surface); font: 700 0.8rem var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
+  .gbtn:hover { background: var(--surface2); }
+  .gbtn:disabled { opacity: .6; cursor: default; }
+  .or { display: flex; align-items: center; gap: 10px; color: var(--muted); font: italic 0.9rem var(--serif); margin: 2px 0; }
+  .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   .adv { display: grid; gap: 10px; }
-  .adv summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; color: var(--muted); font-weight: 600; font-size: 0.9rem; }
+  .adv summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; color: var(--link); font: italic 0.95rem var(--serif); }
   .adv .field { margin-bottom: 10px; }
-  .ph { display: grid; place-items: center; width: 100%; aspect-ratio: 1; background: var(--surface2); color: var(--muted); font-size: 0.8rem; border-radius: 12px; text-align: center; padding: 6px; }
-  .date-nav { display: grid; grid-template-columns: 46px 1fr 46px; gap: 8px; align-items: center; }
-  .icon-btn { height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-size: 1.4rem; line-height: 1; }
-  .icon-btn:disabled { opacity: 0.35; cursor: default; }
-  .date-input { width: 100%; height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; text-align: center; }
-  .date-note { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 6px; }
+  .ph { display: grid; place-items: center; width: 100%; aspect-ratio: 1; background: var(--surface2); color: var(--muted); font: 0.75rem var(--sans); text-align: center; padding: 6px; }
+  .date-nav { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center; }
+  .icon-btn { height: 44px; border: 1px solid var(--line); background: transparent; font: 1.5rem/1 var(--display); }
+  .icon-btn:hover:not(:disabled) { border-color: var(--rule); }
+  .icon-btn:disabled { opacity: 0.3; cursor: default; }
+  .date-input { width: 100%; height: 44px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: 700 0.85rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; text-align: center; }
+  .date-note { text-align: center; color: var(--muted); font: italic 0.92rem var(--serif); margin-top: 6px; }
 
-  main { padding: 16px 16px calc(40px + env(safe-area-inset-bottom)); outline: none; }
+  main { padding: clamp(16px, 3vw, 32px) 0 calc(clamp(40px, 6vw, 72px) + env(safe-area-inset-bottom)); outline: none; }
 
-  /* Composer */
-  .composer { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
-  textarea { display: block; width: 100%; min-height: 128px; max-height: 45vh; resize: none; padding: 4px 2px; border: 0; background: transparent; font-size: 1.1rem; line-height: 1.55; }
+  /* Composer, like a fresh column of copy */
+  .composer { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--rule); padding: clamp(14px, 2vw, 22px); }
+  textarea { display: block; width: 100%; min-height: clamp(128px, 22vh, 240px); max-height: 50vh; resize: none; padding: 4px 2px; border: 0; background: transparent; font: clamp(1.1rem, 1rem + 0.4vw, 1.3rem)/1.55 var(--serif); }
   textarea:focus { outline: none; }
-  textarea::placeholder { color: var(--muted); }
-  .composer:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  textarea::placeholder { color: var(--muted); font-style: italic; }
+  .composer:focus-within { border-color: var(--rule); }
 
   .thumbs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
   .thumbs li { position: relative; }
-  .thumbs img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+  .thumbs img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--line); }
   .thumbs .x { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, 0.7); color: #fff; font-size: 1.1rem; line-height: 1; }
 
   .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-  .tool { min-height: 50px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-weight: 700; padding: 8px 10px; }
-  .tool:hover { background: var(--surface2); }
-  .save { width: 100%; min-height: 54px; margin-top: 10px; border: 0; border-radius: 14px; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 1.05rem; }
+  .tool { min-height: 46px; border: 1px solid var(--line); background: transparent; font: 600 0.74rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 10px; }
+  .tool:hover { border-color: var(--rule); background: var(--surface2); }
+  .save { width: 100%; min-height: 50px; margin-top: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 0.82rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .save:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); color: #fff; }
   .save:disabled { opacity: 0.6; cursor: default; }
-  .msg { min-height: 1.4em; margin-top: 6px; color: var(--danger); font-size: 0.9rem; text-align: center; }
+  .msg { min-height: 1.4em; margin-top: 6px; color: var(--danger); font: italic 0.92rem var(--serif); text-align: center; }
 
-  /* Entries */
-  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 26px 0 4px; }
+  /* Entries, read like dispatches */
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin: 30px 0 2px; padding-top: 6px; border-top: 2px solid var(--rule); }
   .entries { list-style: none; margin: 0; padding: 0; }
   .entry { padding: 16px 0; border-bottom: 1px solid var(--line); }
-  .meta { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.88rem; font-weight: 500; min-height: 28px; }
-  .link { background: none; border: 0; padding: 8px 2px; font-weight: 700; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-  .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.05rem; }
-  .grid { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
-  .photo { display: block; width: 100%; padding: 0; border: 0; background: none; border-radius: 12px; overflow: hidden; }
+  .meta { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font: 600 0.72rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; min-height: 28px; }
+  .link { background: none; border: 0; padding: 8px 2px; font: italic 600 0.95rem var(--serif); letter-spacing: 0; text-transform: none; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.1em; line-height: 1.6; max-width: 68ch; }
+  .grid { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .photo { display: block; width: 100%; padding: 0; border: 1px solid var(--line); background: none; overflow: hidden; }
   .photo img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
-  .empty { padding: 36px 8px; text-align: center; color: var(--muted); }
+  .empty { padding: 36px 8px; text-align: center; color: var(--muted); font-style: italic; }
 
+  /* Desktop: masthead on one row, composer beside the day's entries */
+  @media (min-width: 900px) {
+    .top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px) minmax(0, 1fr); align-items: center; column-gap: 24px; }
+    .top-row { display: contents; }
+    .brand { grid-column: 1; grid-row: 1; }
+    .date-nav { grid-column: 2; grid-row: 1; }
+    .top-right { grid-column: 3; grid-row: 1; justify-self: end; }
+    .date-note { grid-column: 2; grid-row: 2; }
+    main { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto 1fr; column-gap: 0; align-items: start; }
+    main > .composer, main > .nb-link, main > .backup { margin-right: clamp(28px, 3.5vw, 56px); }
+    main > .composer { grid-column: 1; grid-row: 1; }
+    main > section:not(.composer) { grid-column: 2; grid-row: 1 / span 3; padding-left: clamp(28px, 3.5vw, 56px); border-left: 1px solid var(--line); min-height: 60vh; }
+    main > section:not(.composer) .section-head { margin-top: 0; }
+    main > .nb-link { grid-column: 1; grid-row: 2; margin-top: 20px; }
+    main > .backup { grid-column: 1; grid-row: 3; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  }
   .backup { margin-top: 32px; border-top: 1px solid var(--line); padding-top: 8px; }
-  .backup summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font-weight: 500; }
+  .backup summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--muted); font: 600 0.74rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
   .btn-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0; }
-  .hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
-  .ghost { min-height: 46px; border: 1px solid var(--line); background: transparent; border-radius: 12px; font-weight: 700; padding: 8px 14px; }
-  .ghost:hover { background: var(--surface); }
-  .primary { min-height: 46px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font-weight: 800; padding: 8px 16px; }
-  .danger { min-height: 46px; border: 1px solid var(--danger); background: transparent; color: var(--danger); border-radius: 12px; font-weight: 700; padding: 8px 14px; }
+  .hint { color: var(--muted); font-size: 0.95rem; font-style: italic; margin-bottom: 8px; }
+  .ghost, .primary, .danger { min-height: 44px; padding: 8px 14px; font: 700 0.74rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; }
+  .ghost { border: 1px solid var(--rule); background: transparent; }
+  .ghost:hover { background: var(--ink); color: var(--bg); }
+  .primary { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); padding-inline: 16px; }
+  .primary:hover { background: var(--signal); border-color: var(--signal); color: #fff; }
+  .danger { border: 1px solid var(--danger); background: transparent; color: var(--danger); }
 
-  dialog { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 16px; padding: 0; width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
-  dialog::backdrop { background: rgba(5, 8, 14, 0.7); }
+  dialog { border: 1px solid var(--rule); background: var(--bg); color: var(--ink); padding: 0; width: min(480px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+  dialog::backdrop { background: rgba(40, 30, 20, 0.55); }
   @media (max-width: 560px) { dialog { margin-block: auto 12px; } }
-  .sheet { display: grid; gap: 12px; padding: 18px; }
-  .sheet h2 { font-size: 1.15rem; }
-  .sheet textarea { min-height: 110px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
-  .sheet textarea:focus { outline: 3px solid var(--accent); }
+  .sheet { display: grid; gap: 12px; padding: 20px; }
+  .sheet h2 { font: 700 1.6rem/1.15 var(--display); letter-spacing: 0; text-transform: none; padding-bottom: 8px; border-bottom: 4px double var(--rule); }
+  .sheet textarea { min-height: 110px; border: 1px solid var(--line); padding: 10px 12px; background: var(--surface); }
+  .sheet textarea:focus { outline: 2px solid var(--link); }
   .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
   #viewDlg { width: min(900px, calc(100% - 16px)); background: #000; border: 0; }
   #viewDlg img { display: block; width: 100%; max-height: calc(100dvh - 90px); object-fit: contain; }
   #viewDlg .btns { padding: 10px; justify-content: center; background: #000; }
   #viewDlg .ghost { color: #fff; border-color: #555; }
 
-  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; width: min(520px, calc(100% - 24px)); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: var(--ink); color: var(--bg); border-radius: 12px; font-weight: 700; font-size: 0.95rem; }
-  .toast button { background: none; border: 0; font-weight: 800; color: inherit; text-decoration: underline; padding: 4px; }
+  .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; width: min(520px, calc(100% - 24px)); display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; background: var(--ink); color: var(--bg); font: italic 1rem var(--serif); }
+  .toast button { background: none; border: 0; font: 700 0.74rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: inherit; text-decoration: underline; padding: 4px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+  /* Notebook view: the paper notebook stays as it was; only the controls around it follow the site style */
+  .nb-link { display: flex; align-items: center; gap: 14px; margin-top: 28px; padding: 14px 16px; border: 1px solid var(--line); border-top: 2px solid var(--rule); background: var(--surface); text-decoration: none; color: var(--ink); }
+  .nb-link:hover { background: var(--surface2); }
+  .nb-link svg { flex: none; width: 34px; height: 34px; color: var(--signal); }
+  .nb-link b { display: block; font: 700 1.2rem/1.2 var(--display); }
+  .nb-link small { display: block; color: var(--muted); font-size: 0.92rem; font-style: italic; line-height: 1.35; }
+  .nb-link .go { margin-left: auto; font: 1.6rem var(--display); color: var(--signal); }
+
+  #nbView { flex: 1 0 auto; width: 100%; padding: 18px clamp(16px, 4vw, 48px) calc(28px + env(safe-area-inset-bottom)); }
+  .nb-top { max-width: 760px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+  .nb-back { display: inline-flex; align-items: center; min-height: 44px; font: 700 0.74rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink); text-decoration: none; padding-right: 8px; }
+  .nb-back:hover { color: var(--signal); }
+  .nb-title { font: 900 1.6rem var(--display); }
+  .nb-stage { max-width: 760px; margin: 0 auto; padding-left: 30px; perspective: 1400px; }
+  .nb-book { position: relative; }
+  .nb-rings { position: absolute; left: -30px; top: 14px; bottom: 14px; width: 62px; z-index: 3; pointer-events: none; filter: drop-shadow(1px 2px 1.5px rgba(0,0,0,.35)); }
+  .nb-rings svg { display: block; width: 100%; height: 100%; }
+  .nb-page {
+    --lh: 32px;
+    position: relative; min-height: 640px; padding: 0 0 var(--lh) 0; border-radius: 6px 14px 14px 6px; outline: none;
+    background:
+      radial-gradient(120% 90% at 0% 0%, rgba(255,255,255,.55), transparent 55%),
+      radial-gradient(90% 70% at 100% 100%, rgba(150,110,50,.18), transparent 60%),
+      #F3E7C8;
+    color: #3B2F22;
+    box-shadow: 4px 0 0 #E4D3A8, 5px 0 0 #C9B488, 9px 1px 0 #E1CFA2, 10px 1px 0 #BCA573, 14px 3px 0 #6B4A33, 0 14px 28px rgba(20,15,5,.28);
+    transform-origin: left center;
+  }
+  .nb-page::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .5;
+    background: radial-gradient(circle at 12% 18%, rgba(130,95,40,.10) 0 2px, transparent 3px), radial-gradient(circle at 78% 62%, rgba(130,95,40,.08) 0 2px, transparent 3px), radial-gradient(circle at 40% 88%, rgba(130,95,40,.08) 0 1px, transparent 2px);
+    background-size: 160px 160px, 210px 210px, 130px 130px; }
+  .nb-page::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 34px; border-radius: 6px 0 0 6px; pointer-events: none; background: linear-gradient(90deg, rgba(90,60,20,.22), transparent); }
+  .nb-lines { position: relative; padding: 0 clamp(18px, 5vw, 36px) 0 clamp(40px, 9vw, 64px); min-height: 640px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), rgba(70,55,40,.38) calc(var(--lh) - 1px), rgba(70,55,40,.38) var(--lh));
+    background-position: 0 var(--lh); background-repeat: repeat; }
+  .nb-lines, .nb-lines * { font-family: "Caveat", "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; }
+  .nb-lines { padding-top: var(--lh); }
+  .nb-date { margin: 0; font-size: 1.9rem; font-weight: 700; line-height: var(--lh); color: #2E2418; overflow-wrap: anywhere; }
+  .nb-date + .nb-sp { height: var(--lh); }
+  .nb-sp { height: var(--lh); }
+  .nb-entry { margin-bottom: var(--lh); }
+  .nb-meta { display: flex; align-items: center; gap: 10px; height: var(--lh); line-height: var(--lh); font-size: 1.15rem; color: #7A6648; }
+  .nb-tag { font-size: 1rem; padding: 0 8px; line-height: 20px; border: 1px solid currentColor; border-radius: 999px; }
+  .nb-tag[data-s="ok"] { color: #2D6A4F; }
+  .nb-tag[data-s="wait"] { color: #9A5B00; }
+  .nb-edit { margin-left: auto; background: none; border: 0; padding: 0 4px; height: var(--lh); font-size: 1.15rem; color: #6B4A33; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .nb-text { margin: 0; font-size: 1.55rem; line-height: var(--lh); white-space: pre-wrap; overflow-wrap: anywhere; color: #2E2418; }
+  .nb-photos { display: flex; flex-wrap: wrap; gap: 0 14px; }
+  .nb-photos > * { margin: 0; }
+  .nb-photo { display: block; width: 96px; height: 96px; padding: 5px 5px 14px; border: 0; background: #fffdf6; box-shadow: 0 1px 3px rgba(40,25,5,.4); transform: rotate(-1.5deg) translateY(-2px); cursor: pointer; }
+  .nb-photos > *:nth-child(even) .nb-photo { transform: rotate(1.8deg) translateY(-2px); }
+  .nb-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .nb-empty { font-size: 1.6rem; line-height: var(--lh); color: #6B5A42; }
+  .nb-hint { font-size: 1.15rem; line-height: var(--lh); color: #8A7556; }
+  .nb-nav { max-width: 760px; margin: 22px auto 0; padding-left: 30px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+  .nb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 8px 18px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 0.76rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; transition: background .12s ease, opacity .12s ease; }
+  .nb-btn:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); color: #fff; }
+  .nb-btn:disabled { opacity: .3; cursor: default; }
+  .nb-btn svg { width: 16px; height: 16px; }
+  .nb-btn.prev { justify-self: start; } .nb-btn.next { justify-self: end; }
+  .nb-mid { display: grid; gap: 4px; justify-items: center; text-align: center; font: italic 0.92rem var(--serif); color: var(--muted); }
+  .nb-mid input { height: 36px; padding: 0 8px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: 600 0.78rem var(--sans); }
+  @keyframes nbFwd { from { opacity: 0; transform: translateX(26px) rotateY(-9deg); } to { opacity: 1; transform: none; } }
+  @keyframes nbBack { from { opacity: 0; transform: translateX(-26px) rotateY(9deg); } to { opacity: 1; transform: none; } }
+  .nb-page.fwd { animation: nbFwd .28s ease-out; }
+  .nb-page.back { animation: nbBack .28s ease-out; }
+  @media (max-width: 460px) {
+    .nb-nav { grid-template-columns: 1fr 1fr; padding-left: 30px; }
+    .nb-mid { grid-column: 1 / -1; grid-row: 1; }
+    .nb-btn { padding-inline: 14px; }
+    .nb-text { font-size: 1.45rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .nb-page.fwd, .nb-page.back { animation: none; } }
 </style>
 </head>
 <body>
@@ -212,6 +307,12 @@
       <ul class="entries" id="entries"></ul>
     </section>
 
+    <a class="nb-link" href="#notebook" id="nbLink">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="9" y="5" width="25" height="30" rx="3" stroke="currentColor" stroke-width="2.4"/><path d="M15 13h13M15 19h13M15 25h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 10h6M6 17h6M6 24h6M6 31h6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <span><b>Open notebook</b><small>Read earlier days page by page, including entries synced from your other devices</small></span>
+      <span class="go" aria-hidden="true">&rsaquo;</span>
+    </a>
+
     <details class="backup">
       <summary>Sync, backup and data</summary>
       <p class="hint" id="syncHint">Entries and photos are kept in this browser first, then copied to your cloud account when you are signed in.</p>
@@ -225,6 +326,36 @@
     </details>
   </main>
 </div>
+
+<section id="nbView" aria-label="Notebook" hidden>
+  <div class="nb-top">
+    <a class="nb-back" href="#">&larr; Back to Daylog</a>
+    <span class="nb-title">Notebook</span>
+  </div>
+  <div class="nb-stage">
+    <div class="nb-book">
+      <div class="nb-rings" aria-hidden="true">
+        <svg preserveAspectRatio="none" focusable="false">
+          <defs>
+            <linearGradient id="nbMetal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F4F2"/><stop offset=".45" stop-color="#9C9A94"/><stop offset="1" stop-color="#5E5C57"/></linearGradient>
+            <pattern id="nbRing" width="62" height="32" patternUnits="userSpaceOnUse">
+              <circle cx="46" cy="16" r="5.5" fill="#3A2E20" opacity=".55"/>
+              <path d="M5 21 C 18 5, 38 6, 52 15" fill="none" stroke="url(#nbMetal)" stroke-width="4.2" stroke-linecap="round"/>
+              <path d="M6 19.5 C 19 4.5, 38 5, 51 13.6" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1" stroke-linecap="round"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#nbRing)"/>
+        </svg>
+      </div>
+      <article class="nb-page" id="nbPage" tabindex="-1" aria-live="polite"></article>
+    </div>
+  </div>
+  <nav class="nb-nav" aria-label="Notebook pages">
+    <button type="button" class="nb-btn prev" id="nbPrev"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Older</button>
+    <div class="nb-mid"><span id="nbPos">Page 1 of 1</span><label class="sr" for="nbJump">Jump to date</label><input type="date" id="nbJump"></div>
+    <button type="button" class="nb-btn next" id="nbNext">Newer<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M8 4l6 6-6 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </nav>
+</section>
 
 <footer class="site-footer">
   <div class="wrap">
@@ -258,7 +389,11 @@
       <p class="hint" id="connLast"></p>
     </div>
     <div id="connOut">
-      <p class="hint">Sign in with the account your administrator created. Your entries stay on this device until you do.</p>
+      <p class="hint">Sign in to sync your entries across devices. Until you do, they stay on this device.</p>
+      <div id="gWrap" hidden>
+        <button type="button" class="gbtn" id="gBtn">Continue with Google</button>
+        <div class="or"><span>or use your email</span></div>
+      </div>
       <details id="connAdv" class="adv">
         <summary>Connection details</summary>
         <label class="field">API address<input id="cApi" type="url" inputmode="url" autocomplete="off" placeholder="https://abc123.execute-api.us-east-1.amazonaws.com"></label>
@@ -303,6 +438,7 @@
 const CONFIG = {
   apiUrl: 'https://8ha3dcll5a.execute-api.us-east-1.amazonaws.com',     // e.g. https://abc123.execute-api.us-east-1.amazonaws.com
   clientId: '5cm9v8rbhi8u1lt5n0p5qsap3g',   // UserPoolClientId from the stack outputs
+  authDomain: 'daylog-ravi-160275.auth.us-east-1.amazoncognito.com',   // SignInDomain from the stack outputs (needed for Google sign-in)
   region: ''      // optional, read from the API address when empty
 };
 
@@ -321,7 +457,7 @@ const fmtLong = s => parseD(s).toLocaleDateString(undefined, { weekday: 'long', 
 const MAX_PHOTOS = 6;
 const KEY_RE = /^photos\/[\w-]+\/[\w-]+\.(jpg|png|webp)$/;
 const DRAFT_KEY = 'daylog.draft';
-const AUTH_KEY = 'daylog.auth', CONN_KEY = 'daylog.conn', SYNC_KEY = 'daylog.sync';
+const AUTH_KEY = 'daylog.auth', CONN_KEY = 'daylog.conn', SYNC_KEY = 'daylog.sync', OAUTH_KEY = 'daylog.oauth';
 const lid = () => 'p' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 const mem = {};
 const lsGet = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return mem[k] || null; } };
@@ -446,7 +582,8 @@ function entryTime(e) {
   if (isNaN(c) || dstr(c) !== e.date) return 'Added later';
   return c.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
-async function render() {
+async function render() { await renderMain(); if (nbOpen) await nbRender(); }
+async function renderMain() {
   const seq = ++renderSeq;
   renderHeader();
   let list = [];
@@ -598,7 +735,7 @@ const conf = () => {
   const saved = lsGet(CONN_KEY) || {};
   const apiUrl = String(CONFIG.apiUrl || saved.apiUrl || '').trim().replace(/\/+$/, '');
   const m = /\.execute-api\.([a-z0-9-]+)\.amazonaws\.com/.exec(apiUrl);
-  return { apiUrl, clientId: String(CONFIG.clientId || saved.clientId || '').trim(), region: CONFIG.region || (m && m[1]) || '' };
+  return { apiUrl, clientId: String(CONFIG.clientId || saved.clientId || '').trim(), region: CONFIG.region || (m && m[1]) || '', authDomain: String(CONFIG.authDomain || saved.authDomain || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '') };
 };
 const loadAuth = () => lsGet(AUTH_KEY);
 const isConnected = () => Boolean(loadAuth() && loadAuth().refresh);
@@ -845,10 +982,77 @@ function openConn() {
   $('#connErr').textContent = on ? lastError : '';
   $('#connAdv').open = !(c.apiUrl && c.clientId);
   $('#connIn').hidden = !on; $('#connOut').hidden = on;
+  $('#gWrap').hidden = !(c.authDomain && c.clientId);
   $('#connGo').hidden = on; $('#connSync').hidden = !on; $('#connOutBtn').hidden = !on;
   $('#connWho').textContent = on ? 'Signed in as ' + (st.email || 'your account') : '';
   $('#connLast').textContent = on ? fmtAgo(st.last) : '';
   if (!$('#connDlg').open) $('#connDlg').showModal();
+}
+async function completeSignIn(claims, email) {
+  const st = syncState();
+  if (st.sub && claims.sub && st.sub !== claims.sub) {
+    const n = (await dbAll()).filter(e => !e.deletedAt).length;
+    if (n) {
+      const ok = await ask('Different account', 'Entries on this device belong to another account. Signing in will erase them from this device first. Export a backup if you need them.', 'Erase and sign in');
+      if (!ok) { lsDel(AUTH_KEY); return false; }
+    }
+    await dbClear(); lsSet(SYNC_KEY, {});
+  }
+  patchSyncState({ sub: claims.sub, email: claims.email || email || '' });
+  if ($('#connDlg').open) $('#connDlg').close();
+  toast('Signed in. Syncing…');
+  await sync(true);
+  return true;
+}
+
+/* Sign in with Google (Cognito hosted sign-in, authorization code with PKCE) */
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const oauthRedirect = () => location.origin + location.pathname;
+async function startGoogle(retried) {
+  const err = $('#connErr'); err.textContent = '';
+  const c = conf();
+  if (!c.authDomain || !c.clientId) { err.textContent = 'Google sign-in is not set up for this page yet.'; return; }
+  if (!(window.crypto && crypto.subtle)) { err.textContent = 'Google sign-in needs a secure (https) page.'; return; }
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  const url = `https://${c.authDomain}/oauth2/authorize?` + new URLSearchParams({
+    response_type: 'code', client_id: c.clientId, redirect_uri: oauthRedirect(), scope: 'openid email profile',
+    identity_provider: 'Google', code_challenge: challenge, code_challenge_method: 'S256', state
+  }).toString();
+  lsSet(OAUTH_KEY, { verifier, state, retried: Boolean(retried), url });
+  location.assign(url);
+}
+async function handleOAuthReturn() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  const o = lsGet(OAUTH_KEY) || {};
+  const clean = () => { lsDel(OAUTH_KEY); try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* ignore */ } };
+  const fail = msg => { openConn(); $('#connErr').textContent = msg; };
+  if (q.get('error')) {
+    const desc = q.get('error_description') || q.get('error');
+    clean();
+    // After the very first Google sign-in Cognito links the accounts, and the first attempt can report this. A second try works.
+    if (/Already found an entry for username/i.test(desc) && !o.retried) { await startGoogle(true); return; }
+    fail(/PreSignUp|verified/i.test(desc) ? 'Google could not confirm this account\'s email address, so sign-in was refused.' : 'Google sign-in did not finish. Please try again.');
+    return;
+  }
+  if (!o.state || q.get('state') !== o.state || !o.verifier) { clean(); fail('That sign-in could not be verified. Please try again.'); return; }
+  const c = conf();
+  clean();
+  try {
+    let res;
+    try {
+      res = await fetch(`https://${c.authDomain}/oauth2/token`, {
+        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'authorization_code', client_id: c.clientId, code: q.get('code'), redirect_uri: oauthRedirect(), code_verifier: o.verifier }).toString()
+      });
+    } catch (e) { throw new SyncError('network', 'Could not reach the sign-in service. Check your connection.'); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.id_token) throw new SyncError('auth', 'Google sign-in did not finish. Please try again.');
+    lsSet(AUTH_KEY, { id: data.id_token, refresh: data.refresh_token, exp: Date.now() + (data.expires_in || 3600) * 1000 });
+    await completeSignIn(jwtClaims(data.id_token), '');
+  } catch (e) { fail(e.message || 'Google sign-in failed.'); }
 }
 async function doSignIn() {
   const err = $('#connErr'); err.textContent = '';
@@ -861,19 +1065,7 @@ async function doSignIn() {
   const btn = $('#connGo'); btn.disabled = true; btn.textContent = 'Signing in…';
   try {
     const claims = await signIn(email, pass);
-    const st = syncState();
-    if (st.sub && claims.sub && st.sub !== claims.sub) {
-      const n = (await dbAll()).filter(e => !e.deletedAt).length;
-      if (n) {
-        const ok = await ask('Different account', 'Entries on this device belong to another account. Signing in will erase them from this device first. Export a backup if you need them.', 'Erase and sign in');
-        if (!ok) { lsDel(AUTH_KEY); return; }
-      }
-      await dbClear(); lsSet(SYNC_KEY, {});
-    }
-    patchSyncState({ sub: claims.sub, email: claims.email || email });
-    $('#connDlg').close();
-    toast('Signed in. Syncing…');
-    await sync(true);
+    await completeSignIn(claims, email);
   } catch (e) {
     err.textContent = ({
       NotAuthorizedException: 'Wrong email or password.', UserNotFoundException: 'Wrong email or password.',
@@ -887,6 +1079,91 @@ async function doSignOut() {
   const waiting = (await dbAll()).filter(e => e.dirty).length;
   if (waiting && !(await ask('Sign out?', `${waiting} entr${waiting === 1 ? 'y has' : 'ies have'} not synced yet. They stay on this device and sync when you sign in again.`, 'Sign out'))) return;
   lsDel(AUTH_KEY); status = 'off'; $('#connDlg').close(); updateChip(); toast('Signed out');
+}
+
+/* ---------- Notebook view ---------- */
+let nbOpen = false, nbDates = [], nbCur = null;
+const fmtFull = s => parseD(s).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const nearestDate = (list, d) => { let best = null; for (const x of list) if (x <= d) best = x; return best || list[0] || null; };
+async function nbRender(dir) {
+  let all = [];
+  try { all = (await dbAll()).filter(e => !e.deletedAt); } catch (e) { /* show empty */ }
+  nbDates = [...new Set(all.map(e => e.date))].sort();
+  if (!nbDates.length) nbCur = null;
+  else if (nbCur === null) nbCur = nbDates[nbDates.length - 1];
+  else if (!nbDates.includes(nbCur)) nbCur = nearestDate(nbDates, nbCur);
+  const page = $('#nbPage');
+  const idx = nbCur ? nbDates.indexOf(nbCur) : -1;
+  let html = '';
+  if (!nbCur) {
+    html = `<div class="nb-lines"><h2 class="nb-date">Your notebook</h2><div class="nb-sp"></div><p class="nb-empty">Nothing written yet. Add an entry on the Daylog page and it will appear here.</p></div>`;
+  } else {
+    const list = all.filter(e => e.date === nbCur).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const sync = isConnected();
+    const entries = list.map(e => {
+      const tag = e.dirty ? (sync ? ['wait', 'Waiting to sync'] : ['wait', 'On this device']) : ['ok', 'Synced'];
+      const photos = normImages(e.images).map((im, i) => imgSrc(im)
+        ? `<div><button type="button" class="nb-photo" data-view="${esc(e.id)}:${i}" aria-label="Open photo ${i + 1}"><img src="${esc(imgSrc(im))}" alt="Photo ${i + 1} from this entry" loading="lazy"></button></div>` : '').join('');
+      return `<section class="nb-entry">
+        <div class="nb-meta"><span>${esc(entryTime(e))}</span><span class="nb-tag" data-s="${tag[0]}">${tag[1]}</span><button type="button" class="nb-edit" data-edit="${esc(e.id)}">Edit</button></div>
+        ${e.text ? `<p class="nb-text">${esc(e.text)}</p>` : ''}
+        ${photos ? `<div class="nb-photos">${photos}</div>` : ''}
+      </section>`;
+    }).join('');
+    html = `<div class="nb-lines"><h2 class="nb-date">${esc(fmtFull(nbCur))}</h2><div class="nb-sp"></div>${entries}${!isConnected() ? '<p class="nb-hint">Sign in on the Daylog page to see entries from your other devices.</p>' : ''}</div>`;
+  }
+  page.innerHTML = html;
+  if (dir) { page.classList.remove('fwd', 'back'); void page.offsetWidth; page.classList.add(dir); }
+  $('#nbPos').textContent = nbCur ? `Page ${idx + 1} of ${nbDates.length}` : 'No pages yet';
+  $('#nbPrev').disabled = idx <= 0;
+  $('#nbNext').disabled = idx < 0 || idx >= nbDates.length - 1;
+  const j = $('#nbJump');
+  j.disabled = !nbDates.length;
+  if (nbDates.length) { j.min = nbDates[0]; j.max = nbDates[nbDates.length - 1]; j.value = nbCur; } else j.value = '';
+}
+function nbGo(step) {
+  const i = nbDates.indexOf(nbCur) + step;
+  if (i < 0 || i >= nbDates.length) return;
+  nbCur = nbDates[i];
+  nbRender(step > 0 ? 'fwd' : 'back');
+  window.scrollTo(0, 0);
+}
+async function route() {
+  const open = location.hash === '#notebook';
+  if (open === nbOpen) return;
+  nbOpen = open;
+  $('.app').hidden = open; $('#nbView').hidden = !open;
+  document.title = open ? 'Daylog notebook (Beta)' : 'Daylog (Beta) | Daily activity log';
+  if (open) { nbCur = null; await nbRender(); window.scrollTo(0, 0); $('#nbPage').focus({ preventScroll: true }); }
+  else { await renderMain(); window.scrollTo(0, 0); }
+}
+function bindNotebook() {
+  $('#nbPrev').onclick = () => nbGo(-1);
+  $('#nbNext').onclick = () => nbGo(1);
+  $('#nbJump').onchange = e => {
+    if (!isDate(e.target.value) || !nbDates.length) return;
+    const t = nearestDate(nbDates, e.target.value);
+    if (t === nbCur) return;
+    const dir = t > nbCur ? 'fwd' : 'back';
+    nbCur = t; nbRender(dir);
+  };
+  $('#nbPage').addEventListener('click', e => {
+    const ed = e.target.closest('button[data-edit]'); if (ed) { openEdit(ed.dataset.edit); return; }
+    const v = e.target.closest('button[data-view]'); if (v) viewPhoto(v.dataset.view);
+  });
+  document.addEventListener('keydown', e => {
+    if (!nbOpen || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (document.querySelector('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ''))) return;
+    if (e.key === 'ArrowLeft') nbGo(-1); else if (e.key === 'ArrowRight') nbGo(1);
+  });
+  let x0 = null, y0 = 0;
+  const pg = $('#nbPage');
+  pg.addEventListener('touchstart', e => { const t = e.changedTouches[0]; x0 = t.clientX; y0 = t.clientY; }, { passive: true });
+  pg.addEventListener('touchend', e => {
+    if (x0 === null) return; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) nbGo(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  window.addEventListener('hashchange', route);
 }
 
 /* ---------- Events ---------- */
@@ -926,9 +1203,11 @@ function bind() {
   $('#viewClose').onclick = () => $('#viewDlg').close();
   $('#viewDlg').addEventListener('click', e => { if (e.target === $('#viewDlg')) $('#viewDlg').close(); });
 
+  bindNotebook();
   $('#syncChip').onclick = openConn;
   $('#syncBtn').onclick = openConn;
   $('#connForm').onsubmit = e => { e.preventDefault(); doSignIn(); };
+  $('#gBtn').onclick = () => startGoogle(false);
   $('#connClose').onclick = () => $('#connDlg').close();
   $('#connSync').onclick = async () => { $('#connErr').textContent = ''; await sync(true); $('#connErr').textContent = lastError; $('#connLast').textContent = fmtAgo(syncState().last); };
   $('#connOutBtn').onclick = doSignOut;
@@ -971,6 +1250,8 @@ async function init() {
   await purgeOldDeleted();
   await render();
   setStatus(isConnected() ? 'syncing' : 'off');
+  await handleOAuthReturn();
+  await route();
   scheduleSync(200);
   if (useMemory) toast('Storage is blocked in this browser, so entries are kept only until you close the tab.');
 }

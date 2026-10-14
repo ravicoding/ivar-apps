@@ -4,3 +4,5 @@ packaged.yaml
 .DS_Store
 *.log
 .env
+.access_key
+__pycache__/
