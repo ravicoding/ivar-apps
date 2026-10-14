@@ -1,0 +1,146 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Stock news & financial-events collector -> DynamoDB (scheduled Lambda)
+
+Parameters:
+  FinnhubApiKey:
+    Type: String
+    NoEcho: true
+    Description: Free API key from https://finnhub.io
+  FredApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Free FRED API key (https://fredaccount.stlouisfed.org) for CPI, payrolls and other releases
+  AccessKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: Key the web page asks for before showing data (empty = open to anyone with the URL)
+  Symbols:
+    Type: String
+    Default: AAPL,MSFT,NVDA,AMZN,GOOGL
+    Description: Comma-separated watchlist for company news
+  ScheduleExpression:
+    Type: String
+    Default: cron(0/15 7-18 ? * MON-FRI *)
+    Description: When to run, in US Eastern time (default every 15 min, 7am-6:45pm, weekdays)
+  ScheduleMinutes:
+    Type: String
+    Default: '15'
+    Description: Interval of the schedule above, in minutes
+  BedrockModelId:
+    Type: String
+    Default: ''
+    Description: Leave empty to disable AI digests. e.g. us.anthropic.claude-haiku-4-5-20251001-v1:0
+  DigestHours:
+    Type: String
+    Default: '8,12,17'
+    Description: Eastern-time hours at which to write an AI digest
+  TtlDays:
+    Type: Number
+    Default: 30
+    Description: Days to keep items before DynamoDB deletes them automatically
+
+Resources:
+  NewsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  CollectorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: handler.lambda_handler
+      Runtime: python3.12
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NewsTable
+          FINNHUB_API_KEY: !Ref FinnhubApiKey
+          FRED_API_KEY: !Ref FredApiKey
+          SYMBOLS: !Ref Symbols
+          SCHEDULE_MINUTES: !Ref ScheduleMinutes
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          DIGEST_HOURS: !Ref DigestHours
+          TTL_DAYS: !Ref TtlDays
+          MARKET_TZ: America/New_York
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NewsTable
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        Collect:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: !Ref ScheduleExpression
+            ScheduleExpressionTimezone: America/New_York
+            RetryPolicy:
+              MaximumRetryAttempts: 0
+
+  CollectorLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${CollectorFunction}
+      RetentionInDays: 14
+
+  # Read-only API + web page
+  ReaderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: api.lambda_handler
+      Runtime: python3.12
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 15
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NewsTable
+          ACCESS_KEY: !Ref AccessKey
+          SYMBOLS: !Ref Symbols
+          MARKET_TZ: America/New_York
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref NewsTable
+      Events:
+        Page:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: GET
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /api/{proxy+}
+            Method: GET
+
+  ReaderLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ReaderFunction}
+      RetentionInDays: 14
+
+Outputs:
+  WebUrl:
+    Description: Open this in your browser
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/
+  TableName:
+    Value: !Ref NewsTable
+  FunctionName:
+    Value: !Ref CollectorFunction
