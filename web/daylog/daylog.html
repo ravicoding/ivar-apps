@@ -449,6 +449,7 @@ const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : '
 const pad2 = n => String(n).padStart(2, '0');
 const dstr = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const today = () => dstr(new Date());
+const editable = e => !!e && e.date >= today(); // entries from earlier days are read-only
 const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return dstr(d); };
 const daysBetween = (a, b) => Math.round((parseD(b) - parseD(a)) / 86400000);
@@ -601,7 +602,7 @@ async function renderMain() {
       ? `<li><button type="button" class="photo" data-view="${esc(e.id)}:${i}" aria-label="Open photo ${i + 1}"><img src="${esc(imgSrc(im))}" alt="Photo ${i + 1} from this entry" loading="lazy"></button></li>`
       : `<li><div class="ph">Photo will load when online</div></li>`).join('');
     return `<li class="entry" data-id="${esc(e.id)}">
-      <div class="meta"><span>${esc(entryTime(e))}</span><button type="button" class="link" data-edit="${esc(e.id)}">Edit</button></div>
+      <div class="meta"><span>${esc(entryTime(e))}</span>${editable(e) ? `<button type="button" class="link" data-edit="${esc(e.id)}">Edit</button>` : ''}</div>
       ${e.text ? `<p class="body">${esc(e.text)}</p>` : ''}
       ${imgs ? `<ul class="grid">${imgs}</ul>` : ''}
     </li>`;
@@ -631,7 +632,7 @@ async function saveEntry() {
 }
 async function openEdit(id) {
   const e = await dbGet(id);
-  if (!e) return;
+  if (!editable(e)) return;
   editId = id; editImages = normImages(e.images);
   $('#eText').value = e.text || ''; $('#eErr').textContent = '';
   renderEditPhotos();
@@ -644,6 +645,7 @@ function renderEditPhotos() {
 async function saveEdit() {
   const e = await dbGet(editId);
   if (!e) return;
+  if (!editable(e)) { $('#eErr').textContent = 'Entries from earlier days can no longer be changed.'; return; }
   const text = $('#eText').value.trim();
   if (!text && !editImages.length) { $('#eErr').textContent = 'An entry needs text or a photo. Delete it instead.'; return; }
   e.text = text; e.images = editImages.slice(); e.updatedAt = new Date().toISOString(); e.dirty = 1; delete e.syncError;
@@ -656,6 +658,7 @@ async function saveEdit() {
 async function deleteEntry() {
   const e = await dbGet(editId);
   if (!e) return;
+  if (!editable(e)) { $('#eErr').textContent = 'Entries from earlier days can no longer be changed.'; return; }
   const now = new Date().toISOString();
   e.deletedAt = now; e.updatedAt = now; e.dirty = 1; delete e.syncError;
   try { await dbPut(e); } catch (err) { $('#eErr').textContent = 'Could not delete.'; return; }
@@ -1105,7 +1108,7 @@ async function nbRender(dir) {
       const photos = normImages(e.images).map((im, i) => imgSrc(im)
         ? `<div><button type="button" class="nb-photo" data-view="${esc(e.id)}:${i}" aria-label="Open photo ${i + 1}"><img src="${esc(imgSrc(im))}" alt="Photo ${i + 1} from this entry" loading="lazy"></button></div>` : '').join('');
       return `<section class="nb-entry">
-        <div class="nb-meta"><span>${esc(entryTime(e))}</span><span class="nb-tag" data-s="${tag[0]}">${tag[1]}</span><button type="button" class="nb-edit" data-edit="${esc(e.id)}">Edit</button></div>
+        <div class="nb-meta"><span>${esc(entryTime(e))}</span><span class="nb-tag" data-s="${tag[0]}">${tag[1]}</span>${editable(e) ? `<button type="button" class="nb-edit" data-edit="${esc(e.id)}">Edit</button>` : ''}</div>
         ${e.text ? `<p class="nb-text">${esc(e.text)}</p>` : ''}
         ${photos ? `<div class="nb-photos">${photos}</div>` : ''}
       </section>`;
