@@ -4,11 +4,14 @@
   "private": true,
   "type": "module",
   "description": "Lambda API that stores Daylog entries in DynamoDB and photos in S3",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1149.0",
     "@aws-sdk/client-dynamodb": "^3.600.0",
     "@aws-sdk/client-s3": "^3.600.0",
     "@aws-sdk/lib-dynamodb": "^3.600.0",

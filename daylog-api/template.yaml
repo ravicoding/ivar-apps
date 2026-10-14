@@ -11,6 +11,18 @@ Parameters:
     Type: String
     Default: https://ivarsolutions.net
     Description: Website allowed to call the API from a browser. Scheme and host only, no trailing slash.
+  GoogleClientId:
+    Type: String
+    Description: OAuth client ID from Google Cloud Console (APIs and Services, Credentials).
+  GoogleClientSecret:
+    Type: String
+    NoEcho: true
+    Description: OAuth client secret from the same Google credential.
+  CognitoDomainPrefix:
+    Type: String
+    Default: daylog-ravi-160275
+    AllowedPattern: '^[a-z0-9][a-z0-9-]{2,30}[a-z0-9]$'
+    Description: Unique name for the sign-in domain (lowercase letters, digits, hyphens). Must not contain aws, amazon or cognito.
 
 Globals:
   Function:
@@ -35,16 +47,74 @@ Resources:
           RequireUppercase: true
           RequireNumbers: true
           RequireSymbols: false
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpFunction.Arn
       AccountRecoverySetting:
         RecoveryMechanisms:
           - Name: verified_email
             Priority: 1
 
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref UserPool
+
+  GoogleProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: openid email profile
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+        name: name
+        username: sub
+
+  PreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: presignup.handler
+      Timeout: 10
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: [cognito-idp:ListUsers, cognito-idp:AdminLinkProviderForUser]
+              Resource: !Sub arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
+
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PreSignUpFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  PreSignUpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PreSignUpFunction}
+      RetentionInDays: 30
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
+    DependsOn: GoogleProvider
     Properties:
       UserPoolId: !Ref UserPool
       GenerateSecret: false
+      SupportedIdentityProviders: [COGNITO, Google]
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      CallbackURLs: [!Sub '${AllowedOrigin}/daylog.html']
+      LogoutURLs: [!Sub '${AllowedOrigin}/daylog.html']
       PreventUserExistenceErrors: ENABLED
       ExplicitAuthFlows:
         - ALLOW_USER_SRP_AUTH
@@ -205,6 +275,12 @@ Outputs:
     Value: !Ref UserPool
   UserPoolClientId:
     Value: !Ref UserPoolClient
+  SignInDomain:
+    Description: Put this in the CONFIG block of daylog.html as authDomain
+    Value: !Sub ${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
+  GoogleRedirectUri:
+    Description: Add this as an Authorized redirect URI on the Google OAuth client
+    Value: !Sub https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com/oauth2/idpresponse
   TableName:
     Value: !Ref Table
   PhotoBucketName:
