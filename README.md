@@ -2,10 +2,11 @@
 
 | Folder | What it is |
 |---|---|
-| `web/ivar-solutions/` | Company homepage (`index.html`) |
+| `web/ivar-solutions/` | Company homepage (`index.html`), plus the publications pages: `publish.html` (editor, drafts kept in the browser), `publication.html` (one published item) and `pub-render.js` (shared formatter) |
 | `web/daylog/` | Daylog (Beta): daily activity log with photos, offline-first, syncs to the API (`daylog.html`) |
 | `web/daybook/` | Daybook: nightly finance log (single file, stores data in the browser) |
 | `daylog-api/` | AWS SAM backend for Daylog: Lambda, API Gateway, DynamoDB, S3, Cognito. See its README |
+| `publications-api/` | AWS SAM backend for `publish.html`: Lambda and API Gateway that write publications to the site bucket and refresh CloudFront. Sign-in reuses the Daylog Cognito pool. See its README |
 | `stock-alerts/` | Price Alerts: low/high price ranges per stock, checked every 5 minutes in market hours, text (SNS) and ntfy push alerts (AWS SAM: Lambda + Function URL, DynamoDB, EventBridge Scheduler). Page at ivarsolutions.net/alerts/. See its README |
 | `market-pulse/` | Market Pulse: stock news and US economic calendar (AWS SAM: scheduled Lambda, DynamoDB, HTTP API). Live at marketpulse.ivarsolutions.net. See its README |
 
@@ -13,7 +14,10 @@
 
 ```bash
 aws s3 cp web/daylog/daylog.html s3://YOUR-SITE-BUCKET/daylog.html --cache-control "max-age=300" --content-type "text/html"
-aws s3 cp web/ivar-solutions/index.html s3://YOUR-SITE-BUCKET/index.html --cache-control "max-age=300" --content-type "text/html"
+for f in index.html publish.html publication.html; do
+  aws s3 cp web/ivar-solutions/$f s3://YOUR-SITE-BUCKET/$f --cache-control "max-age=300" --content-type "text/html"
+done
+aws s3 cp web/ivar-solutions/pub-render.js s3://YOUR-SITE-BUCKET/pub-render.js --cache-control "max-age=300" --content-type "application/javascript"
 aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
 ```
 

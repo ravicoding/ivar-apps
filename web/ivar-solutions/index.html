@@ -310,7 +310,7 @@
   <section class="section" id="publications">
     <div class="wrap split">
       <h2>Publications and technical papers</h2>
-      <ul class="papers">
+      <ul class="papers" id="papers">
         <li>
           <a class="title" href="https://ivarsolutions.net/docs/Improving%20productivity%20through%20RPA.pdf">Improving productivity through RPA (Robotic Process Automation)</a>
           <p>How software robots can take over repetitive work in digital systems, and what that means for productivity.</p>
@@ -385,5 +385,27 @@
 <footer class="site-footer">
   <div class="wrap">&copy; 2022&ndash;2026 Ivar Solutions Inc</div>
 </footer>
+<script>
+  // New publications from publish.html are listed in /publications/index.json, newest first.
+  (async () => {
+    const list = document.getElementById('papers');
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    let items = [];
+    try {
+      const res = await fetch('/publications/index.json');
+      if (res.ok) items = (await res.json()).items || [];
+    } catch (e) { return; }
+    const html = items.filter(p => /^[a-z0-9-]+$/.test(p.slug)).map(p => {
+      const date = new Date(p.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const meta = [p.pdf ? 'Article and PDF' : 'Article', date, p.authors ? 'Author: ' + esc(p.authors) : ''].filter(Boolean).join('. ');
+      return `<li>
+          <a class="title" href="/publication.html?p=${p.slug}">${esc(p.title)}</a>
+          ${p.summary ? `<p>${esc(p.summary)}</p>` : ''}
+          <div class="meta">${meta}</div>
+        </li>`;
+    }).join('');
+    list.insertAdjacentHTML('afterbegin', html);
+  })();
+</script>
 </body>
 </html>

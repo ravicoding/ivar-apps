@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Publications API. Publishes articles from publish.html to the ivarsolutions.net bucket. Sign-in reuses the Daylog Cognito user pool.
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: https://ivarsolutions.net
+    Description: Website allowed to call the API from a browser. Scheme and host only, no trailing slash.
+  SiteBucket:
+    Type: String
+    Default: ivarsolutions.net
+  DistributionId:
+    Type: String
+    Default: E376XRRSBZVJL0
+    Description: CloudFront distribution in front of the site, invalidated after each publish.
+  UserPoolId:
+    Type: String
+    Description: Cognito user pool that signs people in (UserPoolId output of daylog-api-dev).
+  UserPoolClientId:
+    Type: String
+    Description: App client of that pool (UserPoolClientId output of daylog-api-dev).
+  PublisherEmails:
+    Type: String
+    Description: Comma-separated emails allowed to publish. Anyone else who signs in is refused.
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, PUT, POST, DELETE, OPTIONS]
+        MaxAge: 3600
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}
+              audience:
+                - !Ref UserPoolClientId
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/
+      Handler: handler.handler
+      Runtime: nodejs24.x
+      Architectures: [arm64]
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          SITE_BUCKET: !Ref SiteBucket
+          DISTRIBUTION_ID: !Ref DistributionId
+          PUBLISHER_EMAILS: !Ref PublisherEmails
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${SiteBucket}/publications/*'
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject]
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${SiteBucket}/docs/publications/*'
+            - Effect: Allow
+              Action: s3:ListBucket
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${SiteBucket}'
+              Condition:
+                StringLike:
+                  s3:prefix: ['publications/*', 'docs/publications/*']
+            - Effect: Allow
+              Action: cloudfront:CreateInvalidation
+              Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DistributionId}'
+      Events:
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /health
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        PutPublication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /publications/{slug}
+            Method: PUT
+        DeletePublication:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /publications/{slug}
+            Method: DELETE
+        PdfUploadUrl:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /publications/upload-url
+            Method: POST
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ApiFunction}
+      RetentionInDays: 30
+
+Outputs:
+  ApiUrl:
+    Description: Put this in the CONFIG block of publish.html as apiUrl
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
