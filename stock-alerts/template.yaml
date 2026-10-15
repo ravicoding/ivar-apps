@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Stock price alerts - low/high ranges per ticker, checked every 5 minutes during US market hours, text via SNS and push via ntfy.
+
+Parameters:
+  AppPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Password for the settings page (at least 8 characters).
+  PhoneNumber:
+    Type: String
+    Default: ""
+    AllowedPattern: "^(\\+[1-9][0-9]{7,14})?$"
+    Description: Phone that receives text alerts, in +1XXXXXXXXXX form. Leave blank to turn texts off.
+  SmsOriginationNumber:
+    Type: String
+    Default: ""
+    AllowedPattern: "^(\\+[1-9][0-9]{7,14})?$"
+    Description: Your registered toll-free number in AWS End User Messaging SMS (required to text US phones). Blank until it's approved.
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "https://ivarsolutions.net,https://www.ivarsolutions.net,http://ivarsolutions.net,http://www.ivarsolutions.net"
+    Description: Websites allowed to call the API (scheme + host, no path or trailing slash).
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  AlertsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  AlertsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref AlertsTable
+          APP_PASSWORD: !Ref AppPassword
+          PHONE_NUMBER: !Ref PhoneNumber
+          SMS_ORIGINATION_NUMBER: !Ref SmsOriginationNumber
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AlertsTable
+        - Statement:
+            - Effect: Allow
+              Action: sns:Publish
+              Resource: "*"   # direct-to-phone SMS has no topic ARN to scope to
+      FunctionUrlConfig:
+        AuthType: NONE        # every /api call must carry AppPassword
+        Cors:
+          AllowOrigins: !Ref AllowedOrigins
+          AllowMethods: ["GET", "POST", "DELETE"]
+          AllowHeaders: ["content-type", "x-app-password"]
+          MaxAge: 3600
+      Events:
+        # All times are America/New_York, so daylight saving is handled for you.
+        OpeningHalfHour:      # 9:30, 9:35 ... 9:55
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(30/5 9 ? * MON-FRI *)"
+            ScheduleExpressionTimezone: America/New_York
+            Input: '{"source": "schedule"}'
+        MainSession:          # 10:00, 10:05 ... 3:55
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(0/5 10-15 ? * MON-FRI *)"
+            ScheduleExpressionTimezone: America/New_York
+            Input: '{"source": "schedule"}'
+        Close:                # 4:00
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: "cron(0 16 ? * MON-FRI *)"
+            ScheduleExpressionTimezone: America/New_York
+            Input: '{"source": "schedule"}'
+
+  AlertsFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AlertsFunction}
+      RetentionInDays: 14
+
+Outputs:
+  ApiUrl:
+    Description: The alerts API. deploy-web.sh puts this into web/config.js.
+    Value: !GetAtt AlertsFunctionUrl.FunctionUrl

@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Price Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow column, like a trading-desk ticket pad. Summary bar, then entry form, then the watchlist, then phone setup. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #111a28;
+  --muted: #5a6577;
+  --line: #d8dee7;
+  --accent: #2443c4;
+  --accent-ink: #ffffff;
+  --up: #0b7f55;
+  --down: #c03535;
+  --up-soft: #e3f4ec;
+  --down-soft: #fbe8e8;
+  --idle-soft: #eceff4;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0f17; --surface: #111925; --ink: #e5eaf2; --muted: #8b97a9; --line: #223044;
+    --accent: #7f9bff; --accent-ink: #0a0f17; --up: #3ccb93; --down: #f07a75;
+    --up-soft: #0f2a20; --down-soft: #2f1515; --idle-soft: #172131;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+  padding: max(20px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+}
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 28px; letter-spacing: -0.01em; }
+h2 { font-size: 18px; }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.open { background: var(--up); box-shadow: 0 0 0 0 var(--up); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--up) 50%, transparent); } 70% { box-shadow: 0 0 0 7px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .dot.open { animation: none; } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+form.add { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+@media (max-width: 560px) { form.add { grid-template-columns: 1fr 1fr; } form.add .btn { grid-column: 1 / -1; } }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+input, select {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0;
+}
+input:focus-visible, select:focus-visible, .btn:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#ticker { text-transform: uppercase; font-family: var(--font-mono); }
+.btn {
+  font: 600 14px var(--font-body); border-radius: 8px; padding: 10px 16px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); white-space: nowrap;
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.msg { font-size: 13px; min-height: 1em; }
+.msg.err { color: var(--down); }
+.msg.ok { color: var(--up); }
+
+.list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.alerts { display: flex; flex-direction: column; }
+.alert {
+  display: grid; grid-template-columns: 92px 1fr auto auto; gap: 14px; align-items: center;
+  padding: 12px 0; border-top: 1px solid var(--line);
+}
+.alert:first-child { border-top: 0; }
+.alert .tk { font: 600 17px var(--font-mono); }
+.alert .detail { display: flex; flex-direction: column; min-width: 0; }
+.alert .price { font-size: 15px; }
+.alert .gap { font-size: 12px; color: var(--muted); }
+.pill { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; font-family: var(--font-mono); }
+.pill.above { background: var(--up-soft); color: var(--up); }
+.pill.below { background: var(--down-soft); color: var(--down); }
+.pill.range { background: var(--idle-soft); color: var(--ink); }
+.zone { font-size: 12px; font-weight: 600; }
+.zone.inside { color: var(--muted); font-weight: 400; }
+.zone.below { color: var(--down); }
+.zone.above { color: var(--up); }
+.bar { position: relative; height: 4px; margin-top: 6px; border-radius: 2px; background: var(--line); max-width: 220px; }
+.bar i { position: absolute; top: -3px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); }
+.alert.hit { opacity: 0.85; }
+.alert.hit .pill { background: var(--idle-soft); color: var(--muted); }
+.hitnote { font-size: 12px; font-weight: 600; color: var(--up); }
+.alert.hit.below-dir .hitnote { color: var(--down); }
+.icon-btn { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; }
+.icon-btn:hover { color: var(--down); }
+@media (max-width: 480px) {
+  .alert { grid-template-columns: 1fr auto auto; }
+  .alert .tk { grid-column: 1 / -1; }
+}
+.empty { padding: 18px 0 4px; color: var(--muted); }
+
+ol.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--muted); }
+.topic-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.topic-row input { flex: 1 1 220px; font-family: var(--font-mono); }
+
+.channel { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.channel summary { cursor: pointer; }
+.channel[open] summary { margin-bottom: 4px; }
+#lock { max-width: 380px; margin: 12vh auto 0; }
+footer { text-align: center; }
+</style>
+</head>
+<body>
+
+<section id="lock" class="panel" hidden>
+  <h1>Price Alerts</h1>
+  <p class="muted small" style="margin:0">Enter the app password you set when you deployed.</p>
+  <form id="lockForm" class="row">
+    <input id="pw" type="password" autocomplete="current-password" placeholder="Password" style="flex:1 1 180px" required>
+    <button class="btn" type="submit">Unlock</button>
+  </form>
+  <div id="lockMsg" class="msg err" aria-live="polite"></div>
+</section>
+
+<main id="app" class="wrap" hidden>
+  <header>
+    <div>
+      <h1>Price Alerts</h1>
+      <div class="status"><span id="dot" class="dot"></span><span id="statusText">Loading…</span></div>
+    </div>
+    <button id="checkNow" class="btn ghost" type="button">Check now</button>
+  </header>
+
+  <section class="panel" aria-labelledby="addTitle">
+    <h2 id="addTitle">New alert</h2>
+    <form id="addForm" class="add" novalidate>
+      <div class="field">
+        <label class="label" for="ticker">Ticker</label>
+        <input id="ticker" name="ticker" placeholder="AAPL" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label class="label" for="low">Low ($)</label>
+        <input id="low" name="low" type="number" step="0.01" min="0" inputmode="decimal" placeholder="185.00">
+      </div>
+      <div class="field">
+        <label class="label" for="high">High ($)</label>
+        <input id="high" name="high" type="number" step="0.01" min="0" inputmode="decimal" placeholder="230.00">
+      </div>
+      <button id="addBtn" class="btn" type="submit">Add alert</button>
+    </form>
+    <p class="muted small" style="margin:0">You get a text (and app push, if set up) when the price drops to the low or rises to the high. It alerts again only after the price comes back inside the range. Leave one side blank to watch only the other.</p>
+    <div id="addMsg" class="msg" aria-live="polite"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="listTitle">
+    <div class="list-head">
+      <h2 id="listTitle">Watchlist</h2>
+      <span id="counts" class="muted small"></span>
+    </div>
+    <div id="alerts" class="alerts"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="phoneTitle">
+    <div class="list-head">
+      <h2 id="phoneTitle">Phone notifications</h2>
+      <button id="testBtn" class="btn ghost" type="button">Send test</button>
+    </div>
+
+    <div class="channel">
+      <div class="label">Text message</div>
+      <div id="smsLine" class="small"></div>
+      <div id="smsNote" class="small muted" hidden>US carriers only deliver texts from a registered toll-free number, which AWS approves in up to 15 business days. Until then, turn on app push below so you don't miss alerts.</div>
+    </div>
+
+    <details id="pushBox" class="channel">
+      <summary class="label">App push (optional, works right away)</summary>
+      <ol class="steps small">
+        <li>Install the free <strong>ntfy</strong> app on your phone (App Store or Google Play).</li>
+        <li>Click <strong>Generate</strong> below, then <strong>Save</strong>.</li>
+        <li>In the ntfy app, tap <strong>+</strong> and subscribe to that exact topic name.</li>
+      </ol>
+      <div class="topic-row">
+        <label class="label" for="topic" style="flex-basis:100%">ntfy topic</label>
+        <input id="topic" placeholder="stocks-3f9a1c7b20" spellcheck="false" autocomplete="off">
+        <button id="genBtn" class="btn ghost" type="button">Generate</button>
+        <button id="saveBtn" class="btn" type="button">Save</button>
+      </div>
+      <p class="muted small" style="margin:0">Anyone who knows the topic name can read its notifications, so keep it hard to guess. Leave it blank to use texts only.</p>
+    </details>
+    <div id="topicMsg" class="msg" aria-live="polite"></div>
+  </section>
+
+  <footer class="muted small"><button id="signOut" class="icon-btn small" type="button" style="font-size:13px">Sign out of this device</button></footer>
+</main>
+
+<script src="config.js"></script>
+<script>
+const API = String(window.PRICE_ALERTS_API || "").replace(/\/+$/, "");
+const $ = (s) => document.querySelector(s);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+let password = store.get("pa_pw") || "";
+let state = null;
+
+const money = (n) => "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const timeOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+const dayTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso), today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  return sameDay ? timeOf(iso) : d.toLocaleDateString([], { month: "short", day: "numeric" }) + ", " + timeOf(iso);
+};
+
+async function api(path, opts = {}) {
+  if (!API) throw new Error("This page isn't connected to the alerts service yet. Set PRICE_ALERTS_API in config.js.");
+  let r;
+  try {
+    r = await fetch(API + path, {
+      ...opts,
+      headers: { "Content-Type": "application/json", "x-app-password": password },
+    });
+  } catch {
+    throw new Error("Couldn't reach the alerts service. Check your connection, or that this site's address is in AllowedOrigins.");
+  }
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { showLock("Wrong password. Try again."); throw new Error("locked"); }
+  if (!r.ok) throw new Error(j.error || `Request failed (${r.status}).`);
+  return j;
+}
+
+function showLock(msg = "") {
+  $("#app").hidden = true; $("#lock").hidden = false;
+  $("#lockMsg").textContent = msg; $("#pw").focus();
+}
+
+function setMsg(el, text, kind = "") { el.textContent = text; el.className = "msg " + kind; }
+
+function marketOpen() {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York", weekday: "short", hour: "numeric", minute: "numeric", hourCycle: "h23",
+  }).formatToParts(new Date()).map((p) => [p.type, p.value]));
+  const mins = Number(parts.hour) * 60 + Number(parts.minute);
+  return !["Sat", "Sun"].includes(parts.weekday) && mins >= 570 && mins <= 960;
+}
+
+function renderStatus() {
+  const open = marketOpen();
+  $("#dot").className = "dot" + (open ? " open" : "");
+  const last = state.settings.last_run ? ` · last check ${dayTime(state.settings.last_run)}` : " · no checks yet";
+  $("#statusText").textContent = (open ? "Market open, checking " : "Market closed · checks ") + state.schedule.replace(/^Every/, "every") + last;
+  if (state.settings.last_error) $("#statusText").title = state.settings.last_error;
+}
+
+function renderAlerts() {
+  const box = $("#alerts");
+  box.textContent = "";
+  const watching = state.alerts.filter((a) => a.status === "watching");
+  const hit = state.alerts.filter((a) => a.status !== "watching").sort((a, b) => (b.triggered_at || "").localeCompare(a.triggered_at || ""));
+  const outside = watching.filter((a) => a.kind === "range" && a.zone && a.zone !== "inside").length;
+  $("#counts").textContent = state.alerts.length ? `${watching.length} watching` + (outside ? ` · ${outside} outside range` : "") + (hit.length ? ` · ${hit.length} hit` : "") : "";
+
+  if (!state.alerts.length) {
+    const p = document.createElement("div");
+    p.className = "empty";
+    p.textContent = "No alerts yet. Add a ticker with a low and high price above, for example AAPL between 185 and 230.";
+    box.append(p);
+    return;
+  }
+
+  for (const a of [...watching, ...hit]) {
+    if (a.kind === "range") { box.append(rangeRow(a)); continue; }
+    const isHit = a.status !== "watching";
+    const row = document.createElement("div");
+    row.className = "alert" + (isHit ? " hit" : "") + (a.direction === "below" ? " below-dir" : "");
+
+    const tk = document.createElement("div");
+    tk.className = "tk"; tk.textContent = a.ticker;
+
+    const detail = document.createElement("div");
+    detail.className = "detail";
+    const price = document.createElement("span");
+    price.className = "price num";
+    const gap = document.createElement("span");
+    gap.className = "gap";
+    if (isHit) {
+      price.textContent = money(a.triggered_price);
+      const note = document.createElement("span");
+      note.className = "hitnote";
+      note.textContent = `Hit ${dayTime(a.triggered_at)}`;
+      gap.append(note);
+    } else {
+      price.textContent = a.last_price != null ? money(a.last_price) : "—";
+      if (a.last_price) {
+        const pct = (a.target - a.last_price) / a.last_price * 100;
+        gap.textContent = `needs ${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(2)}% · as of ${dayTime(a.last_checked)}`;
+      }
+    }
+    detail.append(price, gap);
+
+    const pill = document.createElement("span");
+    pill.className = "pill " + a.direction;
+    pill.textContent = (a.direction === "above" ? "≥ " : "≤ ") + money(a.target);
+    pill.title = a.direction === "above" ? "Notify when price rises to or above this" : "Notify when price falls to or below this";
+
+    const del = document.createElement("button");
+    del.className = "icon-btn"; del.type = "button";
+    del.setAttribute("aria-label", `Delete ${a.ticker} alert`);
+    del.textContent = "×";
+    del.onclick = async () => {
+      del.disabled = true;
+      try { await api(`/api/alerts/${a.id}`, { method: "DELETE" }); await refresh(); }
+      catch (e) { del.disabled = false; if (e.message !== "locked") setMsg($("#addMsg"), e.message, "err"); }
+    };
+
+    row.append(tk, detail, pill, del);
+    box.append(row);
+  }
+}
+
+function rangeRow(a) {
+  const row = document.createElement("div");
+  row.className = "alert";
+  const tk = document.createElement("div");
+  tk.className = "tk"; tk.textContent = a.ticker;
+
+  const detail = document.createElement("div");
+  detail.className = "detail";
+  const price = document.createElement("span");
+  price.className = "price num";
+  price.textContent = a.last_price != null ? money(a.last_price) : "—";
+  const zone = document.createElement("span");
+  const z = a.zone || "inside";
+  zone.className = "zone " + z;
+  const sent = a.alerts_sent ? ` · ${a.alerts_sent} alert${a.alerts_sent > 1 ? "s" : ""} sent` : "";
+  zone.textContent = z === "below" ? `Below low since ${dayTime(a.triggered_at)}${sent}`
+    : z === "above" ? `Above high since ${dayTime(a.triggered_at)}${sent}`
+    : `In range · as of ${dayTime(a.last_checked)}${sent}`;
+  detail.append(price, zone);
+  if (a.low != null && a.high != null && a.last_price != null) {
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.setAttribute("aria-hidden", "true");
+    const dot = document.createElement("i");
+    const pct = Math.min(100, Math.max(0, (a.last_price - a.low) / (a.high - a.low) * 100));
+    dot.style.left = pct + "%";
+    if (z !== "inside") dot.style.background = z === "below" ? "var(--down)" : "var(--up)";
+    bar.append(dot);
+    detail.append(bar);
+  }
+
+  const pill = document.createElement("span");
+  pill.className = "pill range";
+  pill.textContent = a.low != null && a.high != null ? `${money(a.low)} – ${money(a.high)}`
+    : a.low != null ? `≥ ${money(a.low)}` : `≤ ${money(a.high)}`;
+  pill.title = a.low != null && a.high != null ? "Notify when the price leaves this range"
+    : a.low != null ? "Notify when the price falls to this low" : "Notify when the price rises to this high";
+
+  const del = document.createElement("button");
+  del.className = "icon-btn"; del.type = "button";
+  del.setAttribute("aria-label", `Delete ${a.ticker} alert`);
+  del.textContent = "×";
+  del.onclick = async () => {
+    del.disabled = true;
+    try { await api(`/api/alerts/${a.id}`, { method: "DELETE" }); await refresh(); }
+    catch (e) { del.disabled = false; if (e.message !== "locked") setMsg($("#addMsg"), e.message, "err"); }
+  };
+  row.append(tk, detail, pill, del);
+  return row;
+}
+
+function renderChannels() {
+  const sms = state.sms || {};
+  $("#smsLine").textContent = sms.to
+    ? `Alerts are texted to ${sms.to}.`
+    : "Texts are off. Set PhoneNumber when you deploy to turn them on.";
+  $("#smsNote").hidden = !sms.to || sms.registered_sender;
+  if (sms.to && !sms.registered_sender && !state.settings.ntfy_topic) $("#pushBox").open = true;
+}
+
+function render() {
+  renderStatus();
+  renderAlerts();
+  renderChannels();
+  if (document.activeElement !== $("#topic")) $("#topic").value = state.settings.ntfy_topic || "";
+}
+
+async function refresh() {
+  state = await api("/api/state");
+  $("#lock").hidden = true; $("#app").hidden = false;
+  render();
+}
+
+$("#lockForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  password = $("#pw").value;
+  try { await refresh(); store.set("pa_pw", password); $("#pw").value = ""; }
+  catch (err) { if (err.message !== "locked") $("#lockMsg").textContent = err.message; }
+});
+
+$("#addForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ticker = $("#ticker").value.trim().toUpperCase();
+  const low = $("#low").value.trim(), high = $("#high").value.trim();
+  if (!ticker) return setMsg($("#addMsg"), "Enter a ticker symbol, like AAPL.", "err");
+  if (!low && !high) return setMsg($("#addMsg"), "Enter a low price, a high price, or both.", "err");
+  if ((low && Number(low) <= 0) || (high && Number(high) <= 0)) return setMsg($("#addMsg"), "Prices must be above zero.", "err");
+  if (low && high && Number(low) >= Number(high)) return setMsg($("#addMsg"), "The low price must be below the high price.", "err");
+  const btn = $("#addBtn");
+  btn.disabled = true; setMsg($("#addMsg"), `Looking up ${ticker}…`);
+  try {
+    const a = await api("/api/alerts", { method: "POST", body: JSON.stringify({ ticker, low, high }) });
+    const already = a.now_outside === "below" ? " It's already at or below your low, so you'll get an alert at the next check."
+      : a.now_outside === "above" ? " It's already at or above your high, so you'll get an alert at the next check." : "";
+    setMsg($("#addMsg"), `Watching ${a.ticker} (now ${money(a.last_price)}).${already}`, "ok");
+    $("#ticker").value = ""; $("#low").value = ""; $("#high").value = "";
+    await refresh();
+  } catch (err) { if (err.message !== "locked") setMsg($("#addMsg"), err.message, "err"); }
+  finally { btn.disabled = false; }
+});
+
+$("#checkNow").onclick = async () => {
+  const btn = $("#checkNow");
+  btn.disabled = true; btn.textContent = "Checking…";
+  try {
+    const r = await api("/api/check", { method: "POST" });
+    state = r; render();
+    setMsg($("#addMsg"), r.hits ? `${r.hits} alert${r.hits > 1 ? "s" : ""} hit. Notification sent.` : `Checked ${r.checked} ticker${r.checked === 1 ? "" : "s"}. All prices are inside their ranges.`, r.errors.length ? "err" : "ok");
+    if (r.errors.length) setMsg($("#addMsg"), r.errors.join("; "), "err");
+  } catch (err) { if (err.message !== "locked") setMsg($("#addMsg"), err.message, "err"); }
+  finally { btn.disabled = false; btn.textContent = "Check now"; }
+};
+
+$("#genBtn").onclick = async () => {
+  try { const r = await api("/api/topic/generate", { method: "POST" }); $("#topic").value = r.topic; setMsg($("#topicMsg"), "Generated. Click Save, then subscribe to it in the ntfy app."); }
+  catch (err) { if (err.message !== "locked") setMsg($("#topicMsg"), err.message, "err"); }
+};
+$("#saveBtn").onclick = async () => {
+  try { await api("/api/settings", { method: "POST", body: JSON.stringify({ ntfy_topic: $("#topic").value.trim() }) }); setMsg($("#topicMsg"), "Saved.", "ok"); await refresh(); }
+  catch (err) { if (err.message !== "locked") setMsg($("#topicMsg"), err.message, "err"); }
+};
+$("#testBtn").onclick = async () => {
+  const btn = $("#testBtn"); btn.disabled = true;
+  try {
+    const r = await api("/api/test", { method: "POST" });
+    const sent = `Sent by ${r.sent.join(" and ")}. Check your phone.`;
+    setMsg($("#topicMsg"), r.errors.length ? `${sent} Not sent: ${r.errors.join("; ")}` : sent, r.errors.length ? "err" : "ok");
+  }
+  catch (err) { if (err.message !== "locked") setMsg($("#topicMsg"), err.message, "err"); }
+  finally { btn.disabled = false; }
+};
+$("#signOut").onclick = () => { store.del("pa_pw"); password = ""; showLock(); };
+
+if (password) refresh().catch((e) => { if (e.message !== "locked") showLock(e.message); });
+else showLock();
+setInterval(() => { if (!$("#app").hidden && document.visibilityState === "visible") refresh().catch(() => {}); }, 60000);
+</script>
+</body>
+</html>
