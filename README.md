@@ -6,6 +6,7 @@
 | `web/daylog/` | Daylog (Beta): daily activity log with photos, offline-first, syncs to the API (`daylog.html`) |
 | `web/daybook/` | Daybook: nightly finance log (single file, stores data in the browser) |
 | `daylog-api/` | AWS SAM backend for Daylog: Lambda, API Gateway, DynamoDB, S3, Cognito. See its README |
+| `stock-alerts/` | Price Alerts: low/high price ranges per stock, checked every 5 minutes in market hours, text (SNS) and ntfy push alerts (AWS SAM: Lambda + Function URL, DynamoDB, EventBridge Scheduler). Page at ivarsolutions.net/alerts/. See its README |
 | `market-pulse/` | Market Pulse: stock news and US economic calendar (AWS SAM: scheduled Lambda, DynamoDB, HTTP API). Live at marketpulse.ivarsolutions.net. See its README |
 
 ## Deploy the web pages
