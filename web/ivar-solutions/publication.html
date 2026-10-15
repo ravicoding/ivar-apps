@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Publication | Ivar Solutions Inc</title>
+<meta name="description" content="Publications and technical papers from Ivar Solutions Inc.">
+<meta name="theme-color" content="#fdf0e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1916" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="https://ivarsolutions.net/img/logo/touch.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Style: Broadsheet (same tokens as index.html) */
+  :root {
+    --paper: #fdf0e3; --surface: #f8e4d0; --ink: #2b2723; --muted: #5a524a; --line: #d9c3ad;
+    --rule: #2b2723; --accent: #0f5499; --accent-ink: #ffffff; --signal: #a3241c;
+    --display: "Playfair Display", "Times New Roman", Georgia, serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1c1916; --surface: #25211d; --ink: #f1e6da; --muted: #c3b5a6; --line: #3d362f;
+      --rule: #f1e6da; --accent: #8dbcf0; --accent-ink: #1c1916; --signal: #ef7a6e; color-scheme: dark;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 1.06rem/1.6 var(--serif); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .wrap { width: min(1140px, 100% - clamp(32px, 8vw, 96px)); margin-inline: auto; }
+
+  .site-header { position: sticky; top: 0; z-index: 10; background: var(--paper); border-bottom: 4px double var(--rule); }
+  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font: 900 1.6rem/1 var(--display); letter-spacing: -0.01em; }
+  .brand img { width: 44px; height: 44px; border-radius: 50%; padding: 3px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
+  .nav { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; padding: 0; list-style: none; font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .nav a { text-decoration: none; color: var(--muted); padding-block: 4px; border-bottom: 2px solid transparent; }
+  .nav a:hover { color: var(--ink); border-bottom-color: var(--signal); }
+
+  .article { padding-block: clamp(40px, 7vw, 80px) clamp(56px, 8vw, 96px); }
+  .article .wrap { max-width: 760px; }
+  .kicker { display: block; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font: 700 0.72rem var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal); }
+  .kicker a { text-decoration: none; }
+  .kicker a:hover { text-decoration: underline; }
+  h1 { margin: 0 0 20px; font: 900 clamp(2.1rem, 5vw, 3.6rem)/1.05 var(--display); letter-spacing: -0.015em; text-wrap: balance; }
+  .lede { margin: 0 0 24px; font-size: 1.22rem; font-style: italic; color: var(--muted); }
+  .byline { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-block: 12px; margin-bottom: 36px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--line); font: 600 0.74rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .byline strong { color: var(--ink); }
+  .btn { display: inline-block; padding: 11px 22px; font: 700 0.78rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+  .btn:hover { background: var(--signal); border-color: var(--signal); }
+  .pdf { margin: 0 0 36px; }
+
+  .prose { font-size: 1.12rem; line-height: 1.7; overflow-wrap: anywhere; }
+  .prose > p:first-of-type::first-letter { float: left; font: 900 3.6em/0.8 var(--display); padding: 6px 10px 0 0; color: var(--signal); }
+  .prose h2, .prose h3, .prose h4 { font-family: var(--display); line-height: 1.2; margin: 1.8em 0 0.5em; }
+  .prose h2 { font-size: 1.8rem; } .prose h3 { font-size: 1.4rem; } .prose h4 { font-size: 1.15rem; }
+  .prose h2::before { content: ""; display: block; width: 48px; height: 3px; background: var(--signal); margin-bottom: 14px; }
+  .prose a { text-decoration-color: var(--signal); text-underline-offset: 4px; }
+  .prose a:hover { color: var(--signal); }
+  .prose blockquote { margin: 1.4em 0; padding: 4px 0 4px 20px; border-left: 3px solid var(--signal); font-style: italic; color: var(--muted); }
+  .prose code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; background: var(--surface); padding: 1px 5px; }
+  .prose pre { background: var(--surface); border-top: 2px solid var(--rule); padding: 16px; overflow-x: auto; }
+  .prose pre code { background: none; padding: 0; }
+  .prose hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 40px 0 0; padding: 0; list-style: none; }
+  .tags li { padding: 2px 10px; background: var(--surface); font: 600 0.8rem var(--sans); letter-spacing: 0.04em; }
+  .back { display: inline-block; margin-top: 48px; font: 700 0.8rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; text-underline-offset: 5px; text-decoration-color: var(--signal); }
+  .notice { padding: 24px 0; color: var(--muted); font-style: italic; }
+
+  .site-footer { border-top: 4px double var(--rule); padding-block: 24px; color: var(--muted); font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; text-align: center; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <img src="https://ivarsolutions.net/img/logo/touch.png" alt="" width="52" height="52">
+      Ivar Solutions Inc
+    </a>
+    <nav aria-label="Main">
+      <ul class="nav">
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#clients">Clients</a></li>
+        <li><a href="/#publications">Publications</a></li>
+        <li><a href="/#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="article">
+  <div class="wrap" id="article">
+    <p class="notice">Loading publication&hellip;</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">&copy; 2022&ndash;2026 Ivar Solutions Inc</div>
+</footer>
+
+<script src="pub-render.js"></script>
+<script>
+(async () => {
+  const { esc, markdown, formatDate } = window.PubRender;
+  const el = document.getElementById('article');
+  const slug = new URLSearchParams(location.search).get('p') || '';
+  const fail = msg => { el.innerHTML = `<p class="notice">${esc(msg)}</p><a class="back" href="/#publications">All publications</a>`; };
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return fail('This publication could not be found.');
+  let p;
+  try {
+    const res = await fetch(`/publications/${slug}.json`);
+    if (!res.ok) return fail('This publication could not be found. It may have been removed.');
+    p = await res.json();
+  } catch (e) { return fail('The publication could not be loaded. Check your connection and try again.'); }
+
+  document.title = `${p.title} | Ivar Solutions Inc`;
+  const desc = document.querySelector('meta[name="description"]');
+  if (p.summary) desc.setAttribute('content', p.summary);
+  const updated = p.updatedAt && p.updatedAt.slice(0, 10) !== String(p.publishedAt).slice(0, 10) ? ` &middot; Updated ${esc(formatDate(p.updatedAt))}` : '';
+  el.innerHTML = `
+    <span class="kicker"><a href="/#publications">Publications and technical papers</a></span>
+    <h1>${esc(p.title)}</h1>
+    ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}
+    <div class="byline">
+      ${p.authors ? `<span>By <strong>${esc(p.authors)}</strong></span>` : ''}
+      <span>${esc(formatDate(p.publishedAt))}${updated}</span>
+    </div>
+    ${p.pdf ? `<p class="pdf"><a class="btn" href="/${encodeURI(p.pdf)}">Read the PDF</a></p>` : ''}
+    <div class="prose">${markdown(p.body)}</div>
+    ${(p.tags || []).length ? `<ul class="tags">${p.tags.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
+    <a class="back" href="/#publications">&larr; All publications</a>`;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Publish | Ivar Solutions Inc</title>
+<meta name="theme-color" content="#fdf0e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1916" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="https://ivarsolutions.net/img/logo/touch.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Style: Broadsheet (same tokens as index.html) */
+  :root {
+    --paper: #fdf0e3; --surface: #f8e4d0; --ink: #2b2723; --muted: #5a524a; --line: #d9c3ad;
+    --rule: #2b2723; --accent: #0f5499; --accent-ink: #ffffff; --signal: #a3241c; --ok: #2f6b3a;
+    --display: "Playfair Display", "Times New Roman", Georgia, serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #1c1916; --surface: #25211d; --ink: #f1e6da; --muted: #c3b5a6; --line: #3d362f;
+      --rule: #f1e6da; --accent: #8dbcf0; --accent-ink: #1c1916; --signal: #ef7a6e; --ok: #8fcf9a; color-scheme: dark;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 1.06rem/1.6 var(--serif); -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  [hidden] { display: none !important; }
+  .wrap { width: min(1240px, 100% - clamp(32px, 8vw, 96px)); margin-inline: auto; }
+
+  .site-header { position: sticky; top: 0; z-index: 10; background: var(--paper); border-bottom: 4px double var(--rule); }
+  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font: 900 1.6rem/1 var(--display); letter-spacing: -0.01em; }
+  .brand img { width: 44px; height: 44px; border-radius: 50%; padding: 3px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
+  .nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 22px; margin: 0; padding: 0; list-style: none; font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .nav a, .nav button { text-decoration: none; color: var(--muted); padding-block: 4px; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+  .nav a:hover, .nav button:hover { color: var(--ink); border-bottom-color: var(--signal); }
+  .who { color: var(--ink); text-transform: none; letter-spacing: 0.02em; font-weight: 600; }
+
+  .page { padding-block: clamp(28px, 5vw, 56px) clamp(48px, 8vw, 88px); }
+  .page-head { margin-bottom: 28px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .page-head .kicker { font: 700 0.72rem var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal); }
+  h1 { margin: 6px 0 0; font: 900 clamp(2rem, 4.4vw, 3.2rem)/1.05 var(--display); letter-spacing: -0.015em; }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 290px) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+  aside { position: sticky; top: 96px; }
+  .side-h { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 8px; padding-top: 10px; border-top: 2px solid var(--rule); font: 700 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .side-h + .list { margin-bottom: 32px; }
+  .list { margin: 0; padding: 0; list-style: none; }
+  .list li { border-bottom: 1px dotted var(--line); }
+  .list button.item { display: block; width: 100%; text-align: left; padding: 10px 8px; border: 0; background: none; color: var(--ink); cursor: pointer; font: 600 1rem/1.3 var(--display); }
+  .list button.item:hover { background: var(--surface); }
+  .list button.item[aria-current="true"] { background: var(--surface); box-shadow: inset 3px 0 0 var(--signal); }
+  .list .sub { display: block; margin-top: 3px; font: 600 0.68rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .list .empty { padding: 10px 0; color: var(--muted); font-style: italic; font-size: 0.95rem; border: 0; }
+  .link-btn { border: 0; background: none; padding: 0; cursor: pointer; color: var(--signal); font: 700 0.72rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
+  .link-btn:hover { text-decoration: underline; }
+
+  .editor { min-width: 0; }
+  .field { margin-bottom: 20px; }
+  .field label, .label { display: block; margin-bottom: 6px; font: 700 0.72rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .hint { margin: 6px 0 0; color: var(--muted); font: 400 0.82rem/1.45 var(--sans); }
+  input[type="text"], input[type="email"], input[type="password"], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-top: 2px solid var(--rule); border-radius: 0;
+    background: color-mix(in srgb, var(--paper) 60%, #fff 40%); color: var(--ink); font: 1.02rem/1.5 var(--serif);
+  }
+  @media (prefers-color-scheme: dark) { input[type="text"], input[type="email"], input[type="password"], textarea { background: var(--surface); } }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  #title { font: 700 1.6rem/1.2 var(--display); }
+  #summary { min-height: 84px; font-style: italic; }
+  #body { min-height: 420px; font: 0.98rem/1.6 ui-monospace, Menlo, Consolas, monospace; resize: vertical; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 24px; }
+  .slug-row { display: flex; align-items: center; gap: 8px; font: 0.86rem var(--sans); color: var(--muted); overflow-wrap: anywhere; }
+  .slug-row input { flex: 1; font: 0.9rem ui-monospace, Menlo, Consolas, monospace; padding: 6px 8px; }
+
+  .tabs { display: flex; gap: 0; margin-bottom: -1px; }
+  .tab { padding: 8px 18px; border: 1px solid var(--line); border-bottom: 0; background: none; color: var(--muted); cursor: pointer; font: 700 0.72rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .tab + .tab { border-left: 0; }
+  .tab[aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .preview { min-height: 420px; padding: 24px clamp(16px, 3vw, 32px); border: 1px solid var(--line); border-top: 2px solid var(--rule); }
+  .preview h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); margin-bottom: 14px; }
+  .preview .lede { margin: 0 0 18px; font-size: 1.15rem; font-style: italic; color: var(--muted); }
+  .preview .byline { padding-block: 10px; margin-bottom: 24px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--line); font: 600 0.72rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+  .prose { font-size: 1.08rem; line-height: 1.7; overflow-wrap: anywhere; }
+  .prose > p:first-of-type::first-letter { float: left; font: 900 3.6em/0.8 var(--display); padding: 6px 10px 0 0; color: var(--signal); }
+  .prose h2, .prose h3, .prose h4 { font-family: var(--display); line-height: 1.2; margin: 1.6em 0 0.5em; }
+  .prose h2 { font-size: 1.6rem; } .prose h3 { font-size: 1.3rem; } .prose h4 { font-size: 1.1rem; }
+  .prose h2::before { content: ""; display: block; width: 48px; height: 3px; background: var(--signal); margin-bottom: 12px; }
+  .prose a { text-decoration-color: var(--signal); text-underline-offset: 4px; }
+  .prose blockquote { margin: 1.4em 0; padding: 4px 0 4px 20px; border-left: 3px solid var(--signal); font-style: italic; color: var(--muted); }
+  .prose code { font: 0.9em ui-monospace, Menlo, Consolas, monospace; background: var(--surface); padding: 1px 5px; }
+  .prose pre { background: var(--surface); border-top: 2px solid var(--rule); padding: 16px; overflow-x: auto; }
+  .prose pre code { background: none; padding: 0; }
+  .prose hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+
+  .pdf-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px; border: 1px dashed var(--line); font: 0.9rem var(--sans); }
+  .pdf-box input[type="file"] { font: 0.85rem var(--sans); max-width: 100%; }
+
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 4px double var(--rule); }
+  .btn { display: inline-block; padding: 11px 22px; font: 700 0.78rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; border: 1px solid var(--ink); background: none; color: var(--ink); cursor: pointer; }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: var(--signal); border-color: var(--signal); }
+  .btn-danger { border-color: var(--signal); color: var(--signal); }
+  .btn-danger:hover { background: var(--signal); color: var(--paper); }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+  .spacer { flex: 1; }
+  .status { min-height: 1.4em; margin: 14px 0 0; font: 600 0.86rem var(--sans); color: var(--muted); }
+  .status.err { color: var(--signal); }
+  .status.ok { color: var(--ok); }
+  .status a { color: inherit; text-underline-offset: 3px; }
+
+  dialog { width: min(420px, 100% - 32px); padding: 28px; border: 1px solid var(--rule); border-top: 4px double var(--rule); background: var(--paper); color: var(--ink); }
+  dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+  dialog h2 { margin: 0 0 6px; font: 700 1.6rem var(--display); }
+  dialog p { margin: 0 0 18px; color: var(--muted); font-size: 0.97rem; }
+  dialog .actions { margin-top: 8px; padding-top: 16px; }
+
+  .site-footer { border-top: 4px double var(--rule); padding-block: 24px; color: var(--muted); font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; text-align: center; }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    aside { position: static; }
+    .row { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <img src="https://ivarsolutions.net/img/logo/touch.png" alt="" width="52" height="52">
+      Ivar Solutions Inc
+    </a>
+    <nav aria-label="Main">
+      <ul class="nav">
+        <li><a href="/#publications">Publications</a></li>
+        <li><span class="who" id="who" hidden></span></li>
+        <li><button type="button" id="authBtn">Sign in</button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <div class="wrap">
+    <div class="page-head">
+      <span class="kicker">Publications desk</span>
+      <h1>Write a publication</h1>
+    </div>
+
+    <div class="layout">
+      <aside aria-label="Drafts and published work">
+        <h2 class="side-h"><span>Drafts on this device</span><button type="button" class="link-btn" id="newDraft">+ New</button></h2>
+        <ul class="list" id="drafts"></ul>
+        <h2 class="side-h"><span>Published</span><button type="button" class="link-btn" id="refreshPub">Refresh</button></h2>
+        <ul class="list" id="published"></ul>
+      </aside>
+
+      <section class="editor" aria-label="Editor">
+        <div class="field">
+          <label for="title">Title</label>
+          <input type="text" id="title" maxlength="200" autocomplete="off" placeholder="Title of the paper or article">
+          <div class="slug-row" style="margin-top:8px">
+            <label for="slug" style="margin:0;font:600 0.8rem var(--sans);letter-spacing:0;text-transform:none">Web address: /publication.html?p=</label>
+            <input type="text" id="slug" maxlength="80" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="authors">Authors</label>
+            <input type="text" id="authors" maxlength="200" placeholder="Raveendranath Nare">
+          </div>
+          <div class="field">
+            <label for="tags">Tags</label>
+            <input type="text" id="tags" maxlength="300" placeholder="AI, Angular, Cloud">
+            <p class="hint">Separate with commas. Up to 8.</p>
+          </div>
+        </div>
+        <div class="field">
+          <label for="summary">Summary</label>
+          <textarea id="summary" maxlength="600" placeholder="One or two sentences shown on the homepage list."></textarea>
+        </div>
+
+        <div class="field">
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab" role="tab" id="tabWrite" aria-selected="true" aria-controls="writePane">Write</button>
+            <button type="button" class="tab" role="tab" id="tabPreview" aria-selected="false" aria-controls="previewPane">Preview</button>
+          </div>
+          <div id="writePane" role="tabpanel" aria-labelledby="tabWrite">
+            <textarea id="body" aria-label="Body" placeholder="Write here. Formatting: ## Heading, **bold**, *italic*, [link](https://...), - list item, > quote, ``` code ```"></textarea>
+            <p class="hint">Formatting: <code>## Heading</code>, <code>**bold**</code>, <code>*italic*</code>, <code>[text](https://link)</code>, <code>- list</code>, <code>1. list</code>, <code>&gt; quote</code>, <code>```</code> for code blocks. Leave a blank line between paragraphs.</p>
+          </div>
+          <div id="previewPane" role="tabpanel" aria-labelledby="tabPreview" class="preview" hidden></div>
+        </div>
+
+        <div class="field">
+          <span class="label">PDF (optional)</span>
+          <div class="pdf-box">
+            <input type="file" id="pdf" accept="application/pdf">
+            <span id="pdfInfo"></span>
+            <button type="button" class="link-btn" id="pdfRemove" hidden>Remove PDF</button>
+          </div>
+          <p class="hint">Up to 20 MB. The PDF is uploaded when you publish. Files can't be kept in a draft, so choose it again if you reload the page first.</p>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="publish">Publish</button>
+          <button type="button" class="btn" id="saveDraft">Save draft</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn btn-danger" id="deleteDraft">Delete draft</button>
+        </div>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<dialog id="signin" aria-labelledby="signinTitle">
+  <form id="signinForm" method="dialog">
+    <h2 id="signinTitle">Sign in to publish</h2>
+    <p>Use the same account as Daylog. Only approved publishers can publish.</p>
+    <div class="field"><label for="email">Email</label><input type="email" id="email" autocomplete="username" required></div>
+    <div class="field"><label for="password">Password</label><input type="password" id="password" autocomplete="current-password" required></div>
+    <p class="status err" id="signinErr"></p>
+    <div class="actions">
+      <button type="submit" class="btn btn-primary" id="signinGo">Sign in</button>
+      <button type="button" class="btn" id="signinCancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="site-footer">
+  <div class="wrap">&copy; 2022&ndash;2026 Ivar Solutions Inc</div>
+</footer>
+
+<script src="pub-render.js"></script>
+<script>
+const CONFIG = {
+  apiUrl: 'https://yzpdmjj8yl.execute-api.us-east-1.amazonaws.com',   // ApiUrl output of the publications-api stack
+  clientId: '5cm9v8rbhi8u1lt5n0p5qsap3g',                              // Daylog user pool app client (shared sign-in)
+  region: 'us-east-1'
+};
+const { esc, markdown, slugify, formatDate } = window.PubRender;
+const $ = s => document.querySelector(s);
+const DRAFTS_KEY = 'ivar.publish.drafts', CURRENT_KEY = 'ivar.publish.current';
+const AUTH_KEY = 'daylog.auth';   // shared with daylog.html, so signing in on either page works for both
+
+/* ---------- Storage (drafts live only in this browser) ---------- */
+
+const mem = {};
+const lsGet = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : (mem[k] ?? null); } catch (e) { return mem[k] ?? null; } };
+const lsSet = (k, v) => { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+const lsDel = k => { delete mem[k]; try { localStorage.removeItem(k); } catch (e) { /* ignore */ } };
+
+const drafts = () => lsGet(DRAFTS_KEY) || {};
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+const blank = () => ({ id: newId(), title: '', slug: '', slugEdited: false, authors: '', summary: '', tags: '', body: '', pdf: null, pdfName: '', editingSlug: null, savedAt: null });
+
+let cur = null;          // the draft being edited
+let pdfFile = null;      // a chosen PDF not yet uploaded (files can't be kept in localStorage)
+let publishedList = [];
+let dirty = false, saveTimer = null;
+
+/* ---------- Status line ---------- */
+
+function status(msg, kind = '', html = false) {
+  const el = $('#status');
+  el.className = 'status' + (kind ? ' ' + kind : '');
+  if (html) el.innerHTML = msg; else el.textContent = msg;
+}
+const timeStr = iso => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+/* ---------- Draft editing ---------- */
+
+function readForm() {
+  return {
+    ...cur,
+    title: $('#title').value, slug: $('#slug').value.trim(), authors: $('#authors').value,
+    summary: $('#summary').value, tags: $('#tags').value, body: $('#body').value
+  };
+}
+
+function fillForm(d) {
+  cur = d; pdfFile = null; $('#pdf').value = '';
+  $('#title').value = d.title; $('#slug').value = d.slug; $('#authors').value = d.authors;
+  $('#summary').value = d.summary; $('#tags').value = d.tags; $('#body').value = d.body;
+  $('#slug').readOnly = Boolean(d.editingSlug);
+  $('#slug').title = d.editingSlug ? 'The web address of a published item cannot change' : '';
+  $('#publish').textContent = d.editingSlug ? 'Update publication' : 'Publish';
+  showPdf(); lsSet(CURRENT_KEY, d.id); dirty = false;
+  status(d.savedAt ? `Draft saved on this device at ${timeStr(d.savedAt)}.` : 'New draft. It saves to this device as you type.');
+  renderLists();
+  if (!$('#previewPane').hidden) renderPreview();
+}
+
+function hasContent(d) { return Boolean(d.title.trim() || d.body.trim() || d.summary.trim()); }
+
+function saveDraft(manual = false) {
+  clearTimeout(saveTimer);
+  cur = readForm();
+  if (!hasContent(cur) && !manual) return;
+  cur.savedAt = new Date().toISOString();
+  const all = drafts(); all[cur.id] = cur;
+  const ok = lsSet(DRAFTS_KEY, all);
+  dirty = false;
+  status(ok ? `Draft saved on this device at ${timeStr(cur.savedAt)}.` : 'This browser blocked local storage, so the draft is kept only until you close the page.', ok ? '' : 'err');
+  renderLists();
+}
+
+function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(() => saveDraft(), 800); }
+
+function removeDraft(id) {
+  const all = drafts(); delete all[id]; lsSet(DRAFTS_KEY, all);
+}
+
+function showPdf() {
+  const has = Boolean(pdfFile || cur.pdf);
+  $('#pdfInfo').textContent = pdfFile ? `${pdfFile.name} (${(pdfFile.size / 1048576).toFixed(1)} MB), uploads when you publish`
+    : cur.pdf ? `Attached: ${cur.pdfName || cur.pdf.split('/').pop()}` : '';
+  $('#pdfRemove').hidden = !has;
+}
+
+/* ---------- Lists ---------- */
+
+function renderLists() {
+  const list = Object.values(drafts()).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  $('#drafts').innerHTML = list.length ? list.map(d => `
+    <li><button type="button" class="item" data-draft="${esc(d.id)}" aria-current="${cur && d.id === cur.id}">
+      ${esc(d.title.trim() || 'Untitled draft')}
+      <span class="sub">${d.editingSlug ? 'Editing published &middot; ' : ''}Saved ${esc(formatDate(d.savedAt))}</span>
+    </button></li>`).join('') : '<li class="empty">No drafts yet.</li>';
+
+  $('#published').innerHTML = publishedList.length ? publishedList.map(p => `
+    <li><button type="button" class="item" data-edit="${esc(p.slug)}">
+      ${esc(p.title)}
+      <span class="sub">${esc(formatDate(p.publishedAt))} &middot; Edit</span>
+    </button></li>`).join('') : '<li class="empty">Nothing published yet.</li>';
+}
+
+async function loadPublished() {
+  try {
+    const res = await fetch('/publications/index.json', { cache: 'no-store' });
+    publishedList = res.ok ? ((await res.json()).items || []) : [];
+  } catch (e) { publishedList = []; }
+  renderLists();
+}
+
+async function editPublished(slug) {
+  const existing = Object.values(drafts()).find(d => d.editingSlug === slug);
+  if (existing) return fillForm(existing);
+  status('Loading publication…');
+  try {
+    const res = await fetch(`/publications/${slug}.json`, { cache: 'no-store' });
+    if (!res.ok) throw new Error();
+    const p = await res.json();
+    const d = { ...blank(), title: p.title, slug: p.slug, slugEdited: true, authors: p.authors || '', summary: p.summary || '',
+      tags: (p.tags || []).join(', '), body: p.body || '', pdf: p.pdf || null, editingSlug: p.slug };
+    fillForm(d); saveDraft(true);
+  } catch (e) { status('That publication could not be loaded.', 'err'); }
+}
+
+/* ---------- Preview ---------- */
+
+function renderPreview() {
+  const d = readForm();
+  const tags = d.tags.split(',').map(t => t.trim()).filter(Boolean);
+  $('#previewPane').innerHTML = `
+    <h1>${esc(d.title || 'Untitled')}</h1>
+    ${d.summary.trim() ? `<p class="lede">${esc(d.summary.trim())}</p>` : ''}
+    <div class="byline">${d.authors.trim() ? `By ${esc(d.authors.trim())} &middot; ` : ''}${esc(formatDate(new Date().toISOString()))}${tags.length ? ' &middot; ' + tags.map(esc).join(', ') : ''}</div>
+    <div class="prose">${markdown(d.body) || '<p><em>Nothing written yet.</em></p>'}</div>`;
+}
+
+function setTab(preview) {
+  $('#tabWrite').setAttribute('aria-selected', String(!preview));
+  $('#tabPreview').setAttribute('aria-selected', String(preview));
+  $('#writePane').hidden = preview; $('#previewPane').hidden = !preview;
+  if (preview) renderPreview();
+}
+
+/* ---------- Sign-in (Cognito, same pool and client as Daylog) ---------- */
+
+class ApiErr extends Error { constructor(code, message, status) { super(message); this.code = code; this.status = status; } }
+
+function jwtClaims(t) {
+  try { const b = String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(atob(b + '='.repeat((4 - b.length % 4) % 4))); }
+  catch (e) { return {}; }
+}
+async function cognito(target, payload) {
+  let res;
+  try {
+    res = await fetch(`https://cognito-idp.${CONFIG.region}.amazonaws.com/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': 'AWSCognitoIdentityProviderService.' + target },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) { throw new ApiErr('network', 'Could not reach the sign-in service. Check your connection.'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiErr(String(data.__type || 'auth').split('#').pop(), data.message || 'Sign-in failed', res.status);
+  return data;
+}
+async function signIn(email, password) {
+  const data = await cognito('InitiateAuth', { AuthFlow: 'USER_PASSWORD_AUTH', ClientId: CONFIG.clientId, AuthParameters: { USERNAME: email, PASSWORD: password } });
+  if (data.ChallengeName) throw new ApiErr('challenge', 'This account still has a temporary password. Set a permanent one first.');
+  const r = data.AuthenticationResult;
+  lsSet(AUTH_KEY, { id: r.IdToken, refresh: r.RefreshToken, exp: Date.now() + (r.ExpiresIn || 3600) * 1000 });
+}
+async function getToken() {
+  const a = lsGet(AUTH_KEY);
+  if (!a || !a.refresh) throw new ApiErr('signedout', 'Sign in to publish.');
+  if (a.exp - 60000 > Date.now()) return a.id;
+  try {
+    const data = await cognito('InitiateAuth', { AuthFlow: 'REFRESH_TOKEN_AUTH', ClientId: CONFIG.clientId, AuthParameters: { REFRESH_TOKEN: a.refresh } });
+    const r = data.AuthenticationResult;
+    lsSet(AUTH_KEY, { id: r.IdToken, refresh: r.RefreshToken || a.refresh, exp: Date.now() + (r.ExpiresIn || 3600) * 1000 });
+    return r.IdToken;
+  } catch (e) {
+    if (e.code === 'network') throw e;
+    lsDel(AUTH_KEY); renderAuth();
+    throw new ApiErr('signedout', 'Your sign-in expired. Sign in again.');
+  }
+}
+async function api(method, path, body, retry = true) {
+  const token = await getToken();
+  let res;
+  try {
+    res = await fetch(CONFIG.apiUrl + path, { method, headers: { Authorization: token, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  } catch (e) { throw new ApiErr('network', 'Could not reach the server. Check your connection.'); }
+  if (res.status === 401) {
+    if (retry) { const a = lsGet(AUTH_KEY); if (a) lsSet(AUTH_KEY, { ...a, exp: 0 }); return api(method, path, body, false); }
+    lsDel(AUTH_KEY); renderAuth(); throw new ApiErr('signedout', 'Your sign-in expired. Sign in again.', 401);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiErr(data.error?.code || 'error', data.error?.message || 'Something went wrong. Try again.', res.status);
+  return data;
+}
+
+function renderAuth() {
+  const a = lsGet(AUTH_KEY);
+  const email = a && a.refresh ? jwtClaims(a.id).email : '';
+  $('#who').hidden = !email; $('#who').textContent = email || '';
+  $('#authBtn').textContent = email ? 'Sign out' : 'Sign in';
+}
+
+let afterSignIn = null;
+function askSignIn(then) {
+  afterSignIn = then || null;
+  $('#signinErr').textContent = '';
+  $('#password').value = '';
+  $('#signin').showModal();
+  $('#email').focus();
+}
+
+/* ---------- Publish ---------- */
+
+async function uploadPdf(file) {
+  if (file.type && file.type !== 'application/pdf') throw new ApiErr('pdf', 'The attachment must be a PDF.');
+  const up = await api('POST', '/publications/upload-url', { contentType: 'application/pdf' });
+  if (file.size > up.maxBytes) throw new ApiErr('pdf', 'The PDF is larger than 20 MB.');
+  const form = new FormData();
+  Object.entries(up.fields).forEach(([k, v]) => form.append(k, v));
+  form.append('file', file, file.name);
+  let res;
+  try { res = await fetch(up.url, { method: 'POST', body: form }); } catch (e) { throw new ApiErr('network', 'The PDF upload failed. Check your connection.'); }
+  if (!res.ok) throw new ApiErr('pdf', 'The PDF upload was refused. Try again.');
+  return up.key;
+}
+
+async function publish() {
+  saveDraft(true);
+  const d = cur;
+  const slug = d.editingSlug || d.slug;
+  if (!d.title.trim()) { status('Add a title before publishing.', 'err'); $('#title').focus(); return; }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 3) { status('The web address needs at least 3 lowercase letters, digits or dashes.', 'err'); $('#slug').focus(); return; }
+  if (!d.body.trim() && !d.pdf && !pdfFile) { status('Write something or attach a PDF before publishing.', 'err'); return; }
+  if (!d.editingSlug && publishedList.some(p => p.slug === slug) &&
+      !confirm(`Something is already published at "${slug}". Replace it?`)) return;
+  try { await getToken(); } catch (e) { return askSignIn(publish); }
+
+  const btn = $('#publish'); btn.disabled = true;
+  try {
+    if (pdfFile) {
+      status('Uploading PDF…');
+      d.pdf = await uploadPdf(pdfFile); d.pdfName = pdfFile.name; pdfFile = null;
+      saveDraft(true);
+    }
+    status('Publishing…');
+    const tags = d.tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 8);
+    const r = await api('PUT', `/publications/${slug}`, { title: d.title, authors: d.authors, summary: d.summary, body: d.body, tags, pdf: d.pdf });
+    removeDraft(d.id);
+    await loadPublished();
+    if (!publishedList.some(p => p.slug === slug)) { publishedList.unshift(r.publication); renderLists(); }
+    const next = blank();
+    fillForm(next);
+    status(`${r.created ? 'Published' : 'Updated'} &ldquo;${esc(r.publication.title)}&rdquo;. <a href="${esc(r.url)}" target="_blank" rel="noopener">View it on the site</a>. It is listed under Publications on the homepage.`, 'ok', true);
+  } catch (e) {
+    if (e.code === 'signedout') return askSignIn(publish);
+    status(e.status === 403 ? 'This account is not allowed to publish.' : e.message, 'err');
+  } finally { btn.disabled = false; }
+}
+
+async function unpublish(slug, confirmed = false) {
+  if (!confirmed && !confirm(`Remove "${slug}" from the website? Your text stays in this draft so you can publish it again.`)) return;
+  try { await getToken(); } catch (e) { return askSignIn(() => unpublish(slug, true)); }
+  try {
+    status('Removing…');
+    await api('DELETE', `/publications/${slug}`);
+    cur.editingSlug = null; saveDraft(true); fillForm(cur);
+    publishedList = publishedList.filter(p => p.slug !== slug); renderLists();
+    status('Removed from the website. It is now a normal draft on this device.', 'ok');
+  } catch (e) {
+    if (e.code === 'signedout') return askSignIn(() => unpublish(slug, true));
+    status(e.message, 'err');
+  }
+}
+
+/* ---------- Wiring ---------- */
+
+$('#title').addEventListener('input', () => {
+  if (!cur.editingSlug && !cur.slugEdited) $('#slug').value = slugify($('#title').value);
+  scheduleSave();
+});
+$('#slug').addEventListener('input', () => {
+  const v = $('#slug').value;
+  cur.slugEdited = v.trim() !== '';
+  $('#slug').value = v.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-{2,}/g, '-');
+  scheduleSave();
+});
+['#authors', '#summary', '#tags', '#body'].forEach(s => $(s).addEventListener('input', scheduleSave));
+
+$('#tabWrite').addEventListener('click', () => setTab(false));
+$('#tabPreview').addEventListener('click', () => setTab(true));
+
+$('#pdf').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (f.size > 20 * 1048576) { status('The PDF is larger than 20 MB.', 'err'); e.target.value = ''; return; }
+  pdfFile = f; showPdf();
+});
+$('#pdfRemove').addEventListener('click', () => { pdfFile = null; cur.pdf = null; cur.pdfName = ''; $('#pdf').value = ''; showPdf(); saveDraft(true); });
+
+$('#saveDraft').addEventListener('click', () => saveDraft(true));
+$('#publish').addEventListener('click', publish);
+$('#deleteDraft').addEventListener('click', () => {
+  if (cur.editingSlug) {
+    const choice = confirm(`This draft edits the published item "${cur.editingSlug}".\n\nOK: remove it from the website.\nCancel: keep it published and only discard this draft.`);
+    if (choice) return unpublish(cur.editingSlug, true);
+  } else if (hasContent(readForm()) && !confirm('Delete this draft from this device?')) return;
+  removeDraft(cur.id);
+  const rest = Object.values(drafts()).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  fillForm(rest[0] || blank());
+  status('Draft deleted.');
+});
+$('#newDraft').addEventListener('click', () => { if (dirty) saveDraft(); fillForm(blank()); $('#title').focus(); });
+$('#refreshPub').addEventListener('click', loadPublished);
+
+$('#drafts').addEventListener('click', e => {
+  const b = e.target.closest('[data-draft]'); if (!b) return;
+  if (dirty) saveDraft();
+  const d = drafts()[b.dataset.draft]; if (d) fillForm(d);
+});
+$('#published').addEventListener('click', e => {
+  const b = e.target.closest('[data-edit]'); if (!b) return;
+  if (dirty) saveDraft();
+  editPublished(b.dataset.edit);
+});
+
+$('#authBtn').addEventListener('click', () => {
+  if (lsGet(AUTH_KEY)) { lsDel(AUTH_KEY); renderAuth(); status('Signed out.'); }
+  else askSignIn();
+});
+$('#signinCancel').addEventListener('click', () => $('#signin').close());
+$('#signinForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const go = $('#signinGo'); go.disabled = true; $('#signinErr').textContent = '';
+  try {
+    await signIn($('#email').value.trim(), $('#password').value);
+    $('#signin').close(); renderAuth();
+    const next = afterSignIn; afterSignIn = null;
+    if (next) next(); else status('Signed in.', 'ok');
+  } catch (err) {
+    $('#signinErr').textContent = err.code === 'NotAuthorizedException' ? 'Wrong email or password.' : err.message;
+  } finally { go.disabled = false; }
+});
+
+window.addEventListener('beforeunload', () => { if (dirty) saveDraft(); });
+
+// Start: reopen the last draft, or a new one.
+renderAuth();
+fillForm(drafts()[lsGet(CURRENT_KEY)] || blank());
+loadPublished();
+</script>
+</body>
+</html>
