@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Price Alerts</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Alerts">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0f17" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap">
@@ -117,6 +126,12 @@ input:focus-visible, select:focus-visible, .btn:focus-visible, .icon-btn:focus-v
 .del-btn.confirm { background: var(--down); border-color: var(--down); color: #fff; }
 .del-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #loadErr { max-width: 420px; margin: 12vh auto 0; }
+.app-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 8px; background: var(--idle-soft); }
+.app-box.on { background: var(--up-soft); }
+.app-box strong { font-weight: 600; }
+.devices { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.devices li { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.share-glyph { display: inline-block; width: 14px; height: 16px; vertical-align: -2px; }
 @media (max-width: 480px) {
   .alert { grid-template-columns: 1fr auto auto; }
   .alert .tk { grid-column: 1 / -1; }
@@ -205,14 +220,30 @@ footer { text-align: center; }
       <button id="testBtn" class="btn ghost" type="button">Send test</button>
     </div>
 
+    <div class="channel" style="border-top:0;padding-top:0">
+      <div class="label">Phone app</div>
+      <div id="appBox" class="app-box">
+        <div id="appLine" class="small">Checking this device…</div>
+        <div class="row">
+          <button id="appBtn" class="btn" type="button" hidden>Turn on notifications</button>
+          <button id="installBtn" class="btn ghost" type="button" hidden>Install app</button>
+        </div>
+        <div id="appMsg" class="msg" aria-live="polite"></div>
+      </div>
+      <div id="devicesWrap" hidden>
+        <div class="label" style="margin:6px 0">Phones with notifications on</div>
+        <ul id="devices" class="devices"></ul>
+      </div>
+    </div>
+
     <div class="channel">
       <div class="label">Text message</div>
       <div id="smsLine" class="small"></div>
-      <div id="smsNote" class="small muted" hidden>US carriers only deliver texts from a registered toll-free number, which AWS approves in up to 15 business days. Until then, turn on app push below so you don't miss alerts.</div>
+      <div id="smsNote" class="small muted" hidden>US carriers only deliver texts from a registered toll-free number, which AWS approves in up to 15 business days. Until then, use the phone app above so you don't miss alerts.</div>
     </div>
 
     <details id="pushBox" class="channel">
-      <summary class="label">App push (optional, works right away)</summary>
+      <summary class="label">ntfy app push (optional backup)</summary>
       <ol class="steps small">
         <li>Install the free <strong>ntfy</strong> app on your phone (App Store or Google Play).</li>
         <li>Click <strong>Generate</strong> below, then <strong>Save</strong>.</li>
@@ -439,7 +470,7 @@ function renderChannels() {
     ? `Alerts are texted to ${sms.to}.`
     : "Texts are off. Set PhoneNumber when you deploy to turn them on.";
   $("#smsNote").hidden = !sms.to || sms.registered_sender;
-  if (sms.to && !sms.registered_sender && !state.settings.ntfy_topic) $("#pushBox").open = true;
+  renderPhoneApp();
 }
 
 function render() {
@@ -515,6 +546,137 @@ $("#testBtn").onclick = async () => {
   finally { btn.disabled = false; }
 };
 $("#signOut").onclick = () => { store.del("pa_pw"); password = ""; showLock(); };
+
+/* ---------- Phone app (installable web app + web push) ---------- */
+
+const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const swReady = pushSupported ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null) : Promise.resolve(null);
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; renderPhoneApp(); });
+
+async function sha256hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function keyBytes(b64) {
+  const s = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - b64.length % 4) % 4));
+  return Uint8Array.from(s, (c) => c.charCodeAt(0));
+}
+function deviceLabel() {
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return "iPhone";
+  if (isIOS) return "iPad";
+  if (/Android/.test(ua)) return "Android phone";
+  return /Mac/.test(ua) ? "Mac browser" : "Computer browser";
+}
+async function currentSubscription() {
+  const reg = await swReady;
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+async function renderPhoneApp() {
+  if (!state) return;
+  const line = $("#appLine"), btn = $("#appBtn"), box = $("#appBox");
+  $("#installBtn").hidden = !installPrompt || isStandalone || isIOS;  // iPhone installs only via Share > Add to Home Screen
+  box.classList.remove("on");
+
+  const devices = state.devices || [];
+  $("#devicesWrap").hidden = !devices.length;
+  const list = $("#devices");
+  list.textContent = "";
+  let thisId = null;
+  const sub = await currentSubscription().catch(() => null);
+  if (sub) thisId = "push#" + (await sha256hex(sub.endpoint)).slice(0, 32);
+  for (const d of devices) {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    name.textContent = `${d.label || "Phone"}${d.id === thisId ? " (this device)" : ""} · on since ${dayTime(d.created_at)}`;
+    const rm = document.createElement("button");
+    rm.className = "del-btn"; rm.type = "button"; rm.textContent = "Remove";
+    rm.onclick = async () => {
+      rm.disabled = true;
+      try {
+        if (d.id === thisId && sub) await sub.unsubscribe().catch(() => {});
+        await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ id: d.id }) });
+        await refresh();
+      } catch (e) { rm.disabled = false; if (e.message !== "locked") setMsg($("#appMsg"), e.message, "err"); }
+    };
+    li.append(name, rm);
+    list.append(li);
+  }
+
+  btn.hidden = true;
+  if (isIOS && !isStandalone) {
+    line.innerHTML = "To get alerts on this iPhone, install the app first: tap <strong>Share</strong> " +
+      '<svg class="share-glyph" viewBox="0 0 14 16" aria-hidden="true"><path d="M7 1v9M3.5 4.5 7 1l3.5 3.5M2 7v8h10V7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>' +
+      " at the bottom of Safari, then <strong>Add to Home Screen</strong>. Open <strong>Alerts</strong> from your Home Screen and turn on notifications there.";
+    return;
+  }
+  if (!pushSupported) { line.textContent = "This browser can't receive notifications. Use Safari on iPhone (iOS 16.4 or later) or Chrome on Android."; return; }
+  if (Notification.permission === "denied") {
+    line.textContent = isIOS ? "Notifications are blocked for this app. Turn them on in Settings → Notifications → Alerts, then come back here."
+      : "Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.";
+    return;
+  }
+  btn.hidden = false;
+  if (sub && thisId && devices.some((d) => d.id === thisId)) {
+    box.classList.add("on");
+    line.innerHTML = "<strong>Notifications are on for this device.</strong> Alerts arrive even when the app is closed.";
+    btn.textContent = "Turn off on this device";
+    btn.className = "btn ghost";
+    btn.onclick = turnOffPush;
+  } else {
+    line.textContent = isStandalone || !/Android/.test(navigator.userAgent)
+      ? "Get alerts on this device as notifications, even when the app is closed."
+      : "Get alerts on this phone as notifications. Tip: tap Install app first so it opens like a regular app.";
+    btn.textContent = "Turn on notifications";
+    btn.className = "btn";
+    btn.onclick = turnOnPush;
+  }
+}
+
+async function turnOnPush() {
+  const btn = $("#appBtn"); btn.disabled = true;
+  setMsg($("#appMsg"), "");
+  try {
+    const perm = await Notification.requestPermission();  // must run straight from the tap
+    if (perm !== "granted") { setMsg($("#appMsg"), "Notifications weren't allowed, so this device won't get alerts.", "err"); return; }
+    const { publicKey } = await api("/api/push/key");
+    const reg = await swReady;
+    if (!reg) throw new Error("Couldn't start the app's background worker. Reload and try again.");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) });
+    await api("/api/push/subscribe", { method: "POST", body: JSON.stringify({ subscription: sub.toJSON(), label: deviceLabel() }) });
+    await refresh();
+    setMsg($("#appMsg"), "Done. Tap Send test above to try it.", "ok");
+  } catch (e) {
+    if (e.message !== "locked") setMsg($("#appMsg"), e.message, "err");
+  } finally { btn.disabled = false; }
+}
+
+async function turnOffPush() {
+  const btn = $("#appBtn"); btn.disabled = true;
+  try {
+    const sub = await currentSubscription();
+    if (sub) {
+      await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
+      await sub.unsubscribe().catch(() => {});
+    }
+    await refresh();
+    setMsg($("#appMsg"), "Notifications are off for this device.", "ok");
+  } catch (e) { if (e.message !== "locked") setMsg($("#appMsg"), e.message, "err"); }
+  finally { btn.disabled = false; }
+}
+
+$("#installBtn").onclick = async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice.catch(() => null);
+  installPrompt = null;
+  renderPhoneApp();
+};
 
 async function start() {
   // Ask the service whether a password is set at all; if not, never show the password box.

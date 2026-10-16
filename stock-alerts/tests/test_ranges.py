@@ -26,8 +26,14 @@ class FakeTable:
         self.meta.client.exceptions.ConditionalCheckFailedException = ConditionFailed
         self.zone_conflict = False
 
-    def scan(self, **_):
-        return {"Items": [app.to_ddb(i) for i in self.items.values()]}
+    def scan(self, FilterExpression=None, **_):
+        items = self.items.values()
+        if FilterExpression is not None:  # app.py only filters on the push# id prefix
+            items = [i for i in items if i["id"].startswith(app.PUSH_PREFIX)]
+        return {"Items": [app.to_ddb(i) for i in items]}
+
+    def delete_item(self, Key):
+        self.items.pop(Key["id"], None)
 
     def get_item(self, Key):
         item = self.items.get(Key["id"])

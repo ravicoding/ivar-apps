@@ -6,3 +6,4 @@ packaged.yaml
 .env
 .access_key
 __pycache__/
+.build/

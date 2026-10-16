@@ -21,13 +21,16 @@ EventBridge Scheduler, every 5 min in market hours (ET)
 |---|---|
 | `template.yaml` | AWS SAM template: Lambda + Function URL (with CORS), DynamoDB table, 3 schedules |
 | `src/app.py` | The Lambda: scheduled price checks, push notifications, and the API |
-| `tests/test_ranges.py` | Tests for range alerts: `python3 -m unittest discover -s tests` (needs boto3) |
+| `src/webpush.py` | Sends phone app notifications (Web Push with VAPID and aes128gcm encryption) |
+| `deploy.sh` | Builds the Lambda (bundles `cryptography` for Linux) and deploys the stack, no SAM or Docker needed |
+| `web/sw.js`, `web/manifest.webmanifest`, `web/*.png` | Make the page an installable phone app that receives notifications |
+| `tests/` | Tests: `python3 -m unittest discover -s tests` (needs boto3, cryptography; `http-ece` is not needed) |
 | `web/index.html` | The settings page (static, goes in S3) |
 | `web/config.js` | Tells the page where the API is; filled in by `deploy-web.sh` |
 | `deploy-web.sh` | Uploads the page to your bucket with the right API URL |
 
-The Lambda has no packages to install; it uses Python's standard library and the
-boto3 that Lambda already includes.
+The only package beyond what Lambda includes is `cryptography` (for phone app
+notifications); `deploy.sh` bundles it.
 
 ## 1. Deploy the Lambda
 
@@ -39,6 +42,10 @@ cd stock-alerts
 sam build
 sam deploy --guided
 ```
+
+Or, without SAM: `./deploy.sh YOUR_DEPLOY_BUCKET price-alerts AppPassword=... PhoneNumber=+1...`
+(later deploys: `./deploy.sh YOUR_DEPLOY_BUCKET`, which keeps the existing settings).
+`sam build` works too: it installs `src/requirements.txt`.
 
 When `--guided` asks:
 - **Stack name:** `price-alerts`
@@ -99,6 +106,28 @@ message (check current AWS End User Messaging SMS pricing).
 2. On the page, open **App push**, click **Generate**, then **Save**.
 3. In the ntfy app, tap **+** and subscribe to that exact topic name.
 4. Click **Send test**. You'll get both a text (once SMS is set up) and a push.
+
+## Phone app (recommended way to get alerts)
+
+The alerts page installs on your phone like an app and gets notifications even
+when it's closed. No app store, no third-party app, no cost.
+
+**iPhone (iOS 16.4 or later):**
+1. Open `https://ivarsolutions.net/alerts/` in **Safari** and unlock it.
+2. Tap **Share**, then **Add to Home Screen**, then **Add**.
+3. Open **Alerts** from your Home Screen (not from Safari), enter the password once,
+   and tap **Turn on notifications**, then **Allow**.
+4. Tap **Send test**.
+
+**Android:** open the page in Chrome, tap **Install app** (or menu > Add to Home
+screen), open it, and tap **Turn on notifications**.
+
+Each phone that turns notifications on is listed on the page, where you can remove
+it. Phones that uninstall the app are removed automatically on the next alert.
+
+Deploying sets this up by itself: `deploy.sh` creates a VAPID key the first time and
+keeps it in SSM Parameter Store (`/price-alerts/vapid-private-key`, encrypted). Don't
+delete or change that key, or every phone has to turn notifications on again.
 
 ## Using it
 
