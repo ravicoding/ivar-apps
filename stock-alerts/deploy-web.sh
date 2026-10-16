@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Upload the settings page to S3, pointed at the deployed Lambda.
+# Upload the settings page (and its phone app files) to S3, pointed at the deployed Lambda.
 #
 # Usage:  ./deploy-web.sh [bucket] [folder] [stack-name]
 # Default: ./deploy-web.sh ivarsolutions.net alerts price-alerts
@@ -29,6 +29,13 @@ aws s3 cp "$OUT/index.html" "${DEST}index.html" \
   --content-type "text/html; charset=utf-8" --cache-control "no-cache"
 aws s3 cp "$OUT/config.js" "${DEST}config.js" \
   --content-type "application/javascript" --cache-control "no-cache"
+# Phone app files: the service worker must never be cached long, or updates won't reach phones.
+aws s3 cp web/sw.js "${DEST}sw.js" --content-type "application/javascript" --cache-control "no-cache"
+aws s3 cp web/manifest.webmanifest "${DEST}manifest.webmanifest" \
+  --content-type "application/manifest+json" --cache-control "max-age=3600"
+for icon in icon-192.png icon-512.png apple-touch-icon.png; do
+  aws s3 cp "web/$icon" "${DEST}$icon" --content-type "image/png" --cache-control "max-age=86400"
+done
 
 echo
 echo "Uploaded to $DEST"

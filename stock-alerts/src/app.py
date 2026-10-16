@@ -9,11 +9,13 @@ One function, two jobs:
   2. Its Function URL is the JSON API for the settings page, which is a
      static file hosted on S3 (see web/). CORS is set in template.yaml.
 
-No third-party packages: only the Python standard library and boto3,
-which the Lambda runtime already includes.
+Phone notifications go out by text (Amazon SNS), ntfy app push, and web push
+to the page installed as a phone app (see webpush.py). The only package beyond
+the Lambda runtime is `cryptography`, used for web push; deploy.sh bundles it.
 """
 
 import base64
+import hashlib
 import hmac
 import json
 import os
@@ -35,7 +37,10 @@ NTFY_SERVER = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
 PHONE_NUMBER = os.environ.get("PHONE_NUMBER", "").strip()            # E.164, e.g. +15551234567
 SMS_ORIGINATION = os.environ.get("SMS_ORIGINATION_NUMBER", "").strip()  # your registered toll-free number
 SNS = boto3.client("sns")
+VAPID_PARAM = os.environ.get("VAPID_PARAM", "")                      # SSM SecureString with the VAPID private key
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:ivarsolutions2020@gmail.com")
 SETTINGS_ID = "__settings__"
+PUSH_PREFIX = "push#"
 SCHEDULE_TEXT = "Every 5 min, 9:30 AM - 4:00 PM ET, Mon - Fri"
 
 
@@ -90,9 +95,69 @@ def list_alerts():
         if "LastEvaluatedKey" not in resp:
             break
         kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
-    alerts = [from_ddb(i) for i in items if i["id"] != SETTINGS_ID]
+    alerts = [from_ddb(i) for i in items if i["id"] != SETTINGS_ID and not i["id"].startswith(PUSH_PREFIX)]
     alerts.sort(key=lambda a: a.get("created_at", ""))
     return alerts
+
+
+# ------------------------------------------------------------------ web push (the phone app)
+
+_vapid_key = None
+
+
+def vapid_key():
+    """VAPID private key, read once per container from SSM Parameter Store."""
+    global _vapid_key
+    if _vapid_key is None:
+        import webpush
+        if not VAPID_PARAM:
+            raise RuntimeError("Web push isn't set up (VAPID_PARAM is empty).")
+        value = boto3.client("ssm").get_parameter(Name=VAPID_PARAM, WithDecryption=True)["Parameter"]["Value"]
+        _vapid_key = webpush.load_private_key(value)
+    return _vapid_key
+
+
+def vapid_public_key():
+    import webpush
+    return webpush.b64url(webpush.raw_public_key(vapid_key().public_key()))
+
+
+def push_id(endpoint):
+    return PUSH_PREFIX + hashlib.sha256(endpoint.encode()).hexdigest()[:32]
+
+
+def list_devices():
+    items, kwargs = [], {"FilterExpression": Attr("id").begins_with(PUSH_PREFIX)}
+    while True:
+        resp = TABLE.scan(**kwargs)
+        items += resp.get("Items", [])
+        if "LastEvaluatedKey" not in resp:
+            break
+        kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+    return [from_ddb(i) for i in items]
+
+
+def send_web_push(title, message, tag):
+    """Push to every phone that turned on notifications. Returns (sent_count, errors)."""
+    devices = list_devices()
+    if not devices:
+        return 0, []
+    import webpush
+    try:
+        key = vapid_key()
+    except Exception as e:
+        return 0, [f"Phone app push failed: {e}"]
+    sent, errors = 0, []
+    data = {"title": title, "body": message, "tag": tag, "url": "/alerts/"}
+    for d in devices:
+        try:
+            webpush.send({"endpoint": d["endpoint"], "keys": d["keys"]}, data, key, VAPID_SUBJECT)
+            sent += 1
+        except webpush.Gone:
+            TABLE.delete_item(Key={"id": d["id"]})  # the phone turned notifications off or removed the app
+        except Exception as e:
+            errors.append(f"Phone app push to {d.get('label') or 'a phone'} failed: {e}")
+    return sent, errors
 
 
 # ------------------------------------------------------------------ prices
@@ -181,13 +246,17 @@ def send_sms(message):
 def notify(topic, title, message, tags="bell"):
     """Send through every configured channel. Returns (sent_channels, errors)."""
     sent, errors = [], []
+    count, errs = send_web_push(title, message, tags)
+    errors += errs
+    if count:
+        sent.append("phone app")
     if PHONE_NUMBER:
         err = send_sms(f"Price alert: {message}")
         (errors.append(err) if err else sent.append("text"))
     if topic:
         err = push(topic, title, message, tags)
         (errors.append(err) if err else sent.append("app push"))
-    if not PHONE_NUMBER and not topic:
+    if not PHONE_NUMBER and not topic and not sent and not errs:
         errors.append("No notification channel is set up.")
     return sent, errors
 
@@ -345,6 +414,7 @@ def state_payload():
         "alerts": list_alerts(),
         "schedule": SCHEDULE_TEXT,
         "sms": {"to": masked_phone(), "registered_sender": bool(SMS_ORIGINATION)},
+        "devices": [{"id": d["id"], "label": d.get("label", ""), "created_at": d.get("created_at")} for d in list_devices()],
     }
 
 
@@ -456,7 +526,7 @@ def handle_http(event):
 
     if method == "DELETE" and path.startswith("/api/alerts/"):
         alert_id = path.rsplit("/", 1)[-1]
-        if alert_id == SETTINGS_ID:
+        if alert_id == SETTINGS_ID or alert_id.startswith(PUSH_PREFIX):
             return error(400, "That isn't an alert.")
         TABLE.delete_item(Key={"id": alert_id})
         return respond(200, {"ok": True})
@@ -467,6 +537,36 @@ def handle_http(event):
             return error(400, "Use only letters, numbers, dashes and underscores in the topic.")
         update_settings(ntfy_topic=topic)
         return respond(200, {"ntfy_topic": topic})
+
+    if method == "GET" and path == "/api/push/key":
+        try:
+            return respond(200, {"publicKey": vapid_public_key()})
+        except Exception as e:
+            return error(503, f"Phone app notifications aren't set up on the server: {e}")
+
+    if method == "POST" and path == "/api/push/subscribe":
+        body = read_json(event)
+        sub = body.get("subscription") or {}
+        endpoint = str(sub.get("endpoint", ""))
+        keys = sub.get("keys") or {}
+        if not endpoint.startswith("https://") or len(endpoint) > 1000:
+            return error(400, "That isn't a valid push subscription.")
+        if not isinstance(keys.get("p256dh"), str) or not isinstance(keys.get("auth"), str):
+            return error(400, "That isn't a valid push subscription.")
+        label = str(body.get("label", "")).strip()[:60]
+        device = {"id": push_id(endpoint), "kind": "push", "endpoint": endpoint,
+                  "keys": {"p256dh": keys["p256dh"][:200], "auth": keys["auth"][:100]},
+                  "label": label, "created_at": now_iso()}
+        TABLE.put_item(Item=device)
+        return respond(200, {"id": device["id"], "label": label})
+
+    if method == "POST" and path == "/api/push/unsubscribe":
+        body = read_json(event)
+        device_id = str(body.get("id") or (push_id(str(body["endpoint"])) if body.get("endpoint") else ""))
+        if not device_id.startswith(PUSH_PREFIX):
+            return error(400, "Say which phone to remove.")
+        TABLE.delete_item(Key={"id": device_id})
+        return respond(200, {"ok": True})
 
     if method == "POST" and path == "/api/topic/generate":
         return respond(200, {"topic": "stocks-" + secrets.token_hex(5)})

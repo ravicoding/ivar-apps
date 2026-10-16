@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Stock price alerts - low/high ranges per ticker, checked every 5 minutes during US market hours, text via SNS and push via ntfy.
+Description: Stock price alerts - low/high ranges per ticker, checked every 5 minutes during US market hours; alerts by phone app (web push), ntfy push and SNS text.
 
 Parameters:
   AppPassword:
@@ -19,6 +19,10 @@ Parameters:
     Default: ""
     AllowedPattern: "^(\\+[1-9][0-9]{7,14})?$"
     Description: Your registered toll-free number in AWS End User Messaging SMS (required to text US phones). Blank until it's approved.
+  VapidParameterName:
+    Type: String
+    Default: /price-alerts/vapid-private-key
+    Description: SSM SecureString holding the VAPID private key for phone app notifications (deploy.sh creates it).
   AllowedOrigins:
     Type: CommaDelimitedList
     Default: "https://ivarsolutions.net,https://www.ivarsolutions.net,http://ivarsolutions.net,http://www.ivarsolutions.net"
@@ -49,6 +53,7 @@ Resources:
           APP_PASSWORD: !Ref AppPassword
           PHONE_NUMBER: !Ref PhoneNumber
           SMS_ORIGINATION_NUMBER: !Ref SmsOriginationNumber
+          VAPID_PARAM: !Ref VapidParameterName
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref AlertsTable
@@ -56,6 +61,15 @@ Resources:
             - Effect: Allow
               Action: sns:Publish
               Resource: "*"   # direct-to-phone SMS has no topic ARN to scope to
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${VapidParameterName}"
+            - Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub "ssm.${AWS::Region}.amazonaws.com"
       FunctionUrlConfig:
         AuthType: NONE        # every /api call must carry AppPassword
         Cors:
