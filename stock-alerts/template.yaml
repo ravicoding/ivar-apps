@@ -74,7 +74,7 @@ Resources:
         AuthType: NONE        # every /api call must carry AppPassword
         Cors:
           AllowOrigins: !Ref AllowedOrigins
-          AllowMethods: ["GET", "POST", "DELETE"]
+          AllowMethods: ["GET", "POST", "PUT", "DELETE"]
           AllowHeaders: ["content-type", "x-app-password"]
           MaxAge: 3600
       Events:

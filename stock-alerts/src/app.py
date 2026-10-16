@@ -431,24 +431,33 @@ def parse_bound(value, name):
     return round(n, 4)
 
 
-def create_range_alert(body):
+def range_input(body):
+    """Validate ticker/low/high and look up the price. Returns (values, None) or (None, error response)."""
     ticker = str(body.get("ticker", "")).strip().upper()
     if not ticker or len(ticker) > 15:
-        return error(400, "Enter a ticker symbol, like AAPL.")
+        return None, error(400, "Enter a ticker symbol, like AAPL.")
     try:
         low, high = parse_bound(body.get("low"), "low"), parse_bound(body.get("high"), "high")
     except ValueError as e:
-        return error(400, str(e))
+        return None, error(400, str(e))
     if low is None and high is None:
-        return error(400, "Enter a low price, a high price, or both.")
+        return None, error(400, "Enter a low price, a high price, or both.")
     if low is not None and high is not None and low >= high:
-        return error(400, "The low price must be below the high price.")
+        return None, error(400, "The low price must be below the high price.")
     try:
         price = get_price(ticker)
     except Exception as e:
-        return error(502, f"Couldn't look up {ticker} right now ({e}). Try again in a minute.")
+        return None, error(502, f"Couldn't look up {ticker} right now ({e}). Try again in a minute.")
     if price is None:
-        return error(400, f"Couldn't find a price for {ticker}. Check the symbol (use BRK-B, not BRK.B).")
+        return None, error(400, f"Couldn't find a price for {ticker}. Check the symbol (use BRK-B, not BRK.B).")
+    return (ticker, low, high, price), None
+
+
+def create_range_alert(body):
+    values, err = range_input(body)
+    if err:
+        return err
+    ticker, low, high, price = values
     stamp = now_iso()
     alert = {
         "id": uuid.uuid4().hex[:10],
@@ -467,6 +476,26 @@ def create_range_alert(body):
     }
     TABLE.put_item(Item=to_ddb({k: v for k, v in alert.items() if v is not None}))
     return respond(201, {**alert, "now_outside": zone_of(price, low, high)})
+
+
+def update_range_alert(alert_id, body):
+    item = TABLE.get_item(Key={"id": alert_id}).get("Item")
+    old = from_ddb(item) if item else None
+    if not old or old.get("kind") != "range":
+        return error(404, "That alert no longer exists. Refresh the page.")
+    values, err = range_input(body)
+    if err:
+        return err
+    ticker, low, high, price = values
+    stamp = now_iso()
+    alert = {k: v for k, v in old.items() if k not in ("low", "high", "triggered_at", "triggered_price")}
+    # Back to "inside", like a new alert: a price already outside the new range alerts on the next check.
+    alert.update({"ticker": ticker, "low": low, "high": high, "zone": "inside",
+                  "last_price": price, "last_checked": stamp, "updated_at": stamp})
+    if ticker != old.get("ticker"):
+        alert.update({"start_price": price, "alerts_sent": 0})
+    TABLE.put_item(Item=to_ddb({k: v for k, v in alert.items() if v is not None}))
+    return respond(200, {**alert, "now_outside": zone_of(price, low, high)})
 
 
 def handle_http(event):
@@ -523,6 +552,12 @@ def handle_http(event):
         }
         TABLE.put_item(Item=to_ddb(alert))
         return respond(201, alert)
+
+    if method == "PUT" and path.startswith("/api/alerts/"):
+        alert_id = path.rsplit("/", 1)[-1]
+        if alert_id == SETTINGS_ID or alert_id.startswith(PUSH_PREFIX):
+            return error(400, "That isn't an alert.")
+        return update_range_alert(alert_id, read_json(event))
 
     if method == "DELETE" and path.startswith("/api/alerts/"):
         alert_id = path.rsplit("/", 1)[-1]

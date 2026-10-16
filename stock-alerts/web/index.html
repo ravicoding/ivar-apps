@@ -125,6 +125,13 @@ input:focus-visible, select:focus-visible, .btn:focus-visible, .icon-btn:focus-v
 .del-btn:hover { border-color: var(--down); color: var(--down); }
 .del-btn.confirm { background: var(--down); border-color: var(--down); color: #fff; }
 .del-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.del-btn.edit:hover { border-color: var(--accent); color: var(--accent); }
+.actions { display: flex; gap: 6px; }
+.alert.editing { grid-template-columns: 1fr; }
+form.edit { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+form.edit input[name="ticker"] { text-transform: uppercase; font-family: var(--font-mono); }
+form.edit .msg { grid-column: 1 / -1; }
+@media (max-width: 560px) { form.edit { grid-template-columns: 1fr 1fr 1fr; } form.edit .row { grid-column: 1 / -1; } }
 #loadErr { max-width: 420px; margin: 12vh auto 0; }
 .app-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 8px; background: var(--idle-soft); }
 .app-box.on { background: var(--up-soft); }
@@ -133,8 +140,12 @@ input:focus-visible, select:focus-visible, .btn:focus-visible, .icon-btn:focus-v
 .devices li { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
 .share-glyph { display: inline-block; width: 14px; height: 16px; vertical-align: -2px; }
 @media (max-width: 480px) {
-  .alert { grid-template-columns: 1fr auto auto; }
-  .alert .tk { grid-column: 1 / -1; }
+  .alert { grid-template-columns: 1fr auto; grid-template-areas: "tk actions" "detail pill"; gap: 8px 12px; }
+  .alert .tk { grid-area: tk; }
+  .alert .detail { grid-area: detail; }
+  .alert .pill { grid-area: pill; }
+  .alert .actions { grid-area: actions; justify-self: end; }
+  .alert.editing { grid-template-columns: 1fr; grid-template-areas: none; }
 }
 .empty { padding: 18px 0 4px; color: var(--muted); }
 
@@ -204,6 +215,7 @@ footer { text-align: center; }
       <span id="counts" class="muted small"></span>
     </div>
     <div id="alerts" class="alerts"></div>
+    <div id="listMsg" class="msg" aria-live="polite"></div>
   </section>
 
   <section id="targetsPanel" class="panel" aria-labelledby="targetsTitle" hidden>
@@ -363,6 +375,7 @@ function deleteButton(a) {
 function renderAlerts() {
   const ranges = state.alerts.filter((a) => a.kind === "range").sort((a, b) => a.ticker.localeCompare(b.ticker));
   const targets = state.alerts.filter((a) => a.kind !== "range");
+  if (editing && !ranges.some((a) => a.id === editing.id)) editing = null;
   const outside = ranges.filter((a) => a.zone && a.zone !== "inside").length;
   $("#counts").textContent = ranges.length ? `${ranges.length} alert${ranges.length > 1 ? "s" : ""}` + (outside ? ` · ${outside} outside range` : "") : "";
 
@@ -417,12 +430,16 @@ function renderAlerts() {
     pill.textContent = (a.direction === "above" ? "≥ " : "≤ ") + money(a.target);
     pill.title = a.direction === "above" ? "Notify when price rises to or above this" : "Notify when price falls to or below this";
 
-    row.append(tk, detail, pill, deleteButton(a));
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    actions.append(deleteButton(a));
+    row.append(tk, detail, pill, actions);
     tbox.append(row);
   }
 }
 
 function rangeRow(a) {
+  if (a.id === editing?.id) return editRow(a);
   const row = document.createElement("div");
   row.className = "alert";
   const tk = document.createElement("div");
@@ -460,7 +477,83 @@ function rangeRow(a) {
   pill.title = a.low != null && a.high != null ? "Notify when the price leaves this range"
     : a.low != null ? "Notify when the price falls to this low" : "Notify when the price rises to this high";
 
-  row.append(tk, detail, pill, deleteButton(a));
+  const edit = document.createElement("button");
+  edit.className = "del-btn edit"; edit.type = "button";
+  edit.textContent = "Edit";
+  edit.setAttribute("aria-label", `Edit ${a.ticker} alert`);
+  edit.onclick = () => {
+    editing = { id: a.id, ticker: a.ticker, low: a.low ?? "", high: a.high ?? "" };
+    setMsg($("#listMsg"), "");
+    renderAlerts();
+    $('#alerts form.edit input[name="low"]').focus();
+  };
+  const actions = document.createElement("div");
+  actions.className = "actions";
+  actions.append(edit, deleteButton(a));
+  row.append(tk, detail, pill, actions);
+  return row;
+}
+
+// The alert being edited. The draft values live here so a re-render (auto refresh) keeps what was typed.
+let editing = null;
+
+function editRow(a) {
+  const row = document.createElement("div");
+  row.className = "alert editing";
+  const form = document.createElement("form");
+  form.className = "edit"; form.noValidate = true;
+  form.setAttribute("aria-label", `Edit ${a.ticker} alert`);
+  const inputs = {};
+  for (const [name, label] of [["ticker", "Ticker"], ["low", "Low ($)"], ["high", "High ($)"]]) {
+    const field = document.createElement("label");
+    field.className = "field";
+    const l = document.createElement("span");
+    l.className = "label"; l.textContent = label;
+    const input = document.createElement("input");
+    input.name = name; input.value = editing[name]; input.autocomplete = "off";
+    if (name === "ticker") { input.spellcheck = false; input.autocapitalize = "characters"; }
+    else { input.inputMode = "decimal"; input.placeholder = "none"; }
+    input.oninput = () => { editing[name] = input.value; };
+    field.append(l, input);
+    form.append(field);
+    inputs[name] = input;
+  }
+  const buttons = document.createElement("div");
+  buttons.className = "row";
+  const save = document.createElement("button");
+  save.className = "btn"; save.type = "submit"; save.textContent = "Save";
+  const cancel = document.createElement("button");
+  cancel.className = "btn ghost"; cancel.type = "button"; cancel.textContent = "Cancel";
+  const stop = () => { editing = null; renderAlerts(); };
+  cancel.onclick = stop;
+  form.onkeydown = (e) => { if (e.key === "Escape") stop(); };
+  buttons.append(save, cancel);
+  const msg = document.createElement("div");
+  msg.className = "msg"; msg.setAttribute("aria-live", "polite");
+  form.append(buttons, msg);
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const ticker = inputs.ticker.value.trim().toUpperCase();
+    const low = inputs.low.value.trim(), high = inputs.high.value.trim();
+    if (!ticker) return setMsg(msg, "Enter a ticker symbol, like AAPL.", "err");
+    if (!low && !high) return setMsg(msg, "Enter a low price, a high price, or both.", "err");
+    if ((low && !(Number(low) > 0)) || (high && !(Number(high) > 0))) return setMsg(msg, "Prices must be numbers above zero.", "err");
+    if (low && high && Number(low) >= Number(high)) return setMsg(msg, "The low price must be below the high price.", "err");
+    save.disabled = true; cancel.disabled = true; setMsg(msg, `Saving ${ticker}…`);
+    try {
+      const r = await api(`/api/alerts/${a.id}`, { method: "PUT", body: JSON.stringify({ ticker, low, high }) });
+      const already = r.now_outside === "below" ? " It's already at or below the new low, so you'll get an alert at the next check."
+        : r.now_outside === "above" ? " It's already at or above the new high, so you'll get an alert at the next check." : "";
+      editing = null;
+      setMsg($("#listMsg"), `Updated ${r.ticker} (now ${money(r.last_price)}).${already}`, "ok");
+      await refresh();
+    } catch (err) {
+      save.disabled = false; cancel.disabled = false;
+      if (err.message !== "locked") setMsg(msg, err.message, "err");
+    }
+  };
+  row.append(form);
   return row;
 }
 
@@ -694,7 +787,7 @@ async function start() {
 }
 $("#retryBtn").onclick = start;
 start();
-setInterval(() => { if (!$("#app").hidden && document.visibilityState === "visible") refresh().catch(() => {}); }, 60000);
+setInterval(() => { if (!$("#app").hidden && !editing && document.visibilityState === "visible") refresh().catch(() => {}); }, 60000);
 </script>
 </body>
 </html>

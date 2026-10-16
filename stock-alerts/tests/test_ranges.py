@@ -178,6 +178,39 @@ class CreateRangeTests(unittest.TestCase):
         self.assertEqual(app.handle_http(event)["statusCode"], 401)
 
 
+class UpdateRangeTests(unittest.TestCase):
+    def put(self, alert_id, body, items, price=110.0):
+        t = FakeTable(items)
+        event = {"requestContext": {"http": {"method": "PUT"}}, "rawPath": f"/api/alerts/{alert_id}",
+                 "headers": {"x-app-password": "secret-pass"}, "body": json.dumps(body)}
+        with mock.patch.object(app, "TABLE", t), mock.patch.object(app, "get_price", return_value=price):
+            r = app.handle_http(event)
+        return r["statusCode"], json.loads(r["body"]), t
+
+    def test_updates_range_and_resets_zone(self):
+        old = range_alert(zone="above", triggered_at="x", triggered_price=125.0, alerts_sent=2)
+        status, body, t = self.put("r1", {"ticker": "AAPL", "low": "105", "high": "130"}, [old])
+        self.assertEqual(status, 200)
+        item = t.items["r1"]
+        self.assertEqual((item["low"], item["high"], item["zone"], item["alerts_sent"]), (105.0, 130.0, "inside", 2))
+        self.assertNotIn("triggered_at", item)
+        self.assertEqual(item["created_at"], old["created_at"])
+        self.assertEqual(body["now_outside"], "inside")
+
+    def test_clearing_one_side_removes_it(self):
+        _, _, t = self.put("r1", {"ticker": "AAPL", "low": "", "high": "130"}, [range_alert()])
+        self.assertNotIn("low", t.items["r1"])
+
+    def test_new_ticker_resets_count(self):
+        _, _, t = self.put("r1", {"ticker": "msft", "low": 100, "high": 120}, [range_alert(alerts_sent=3)])
+        self.assertEqual((t.items["r1"]["ticker"], t.items["r1"]["alerts_sent"]), ("MSFT", 0))
+
+    def test_validation_and_missing(self):
+        self.assertIn("low price must be below", self.put("r1", {"ticker": "AAPL", "low": 130, "high": 100}, [range_alert()])[1]["error"])
+        self.assertEqual(self.put("nope", {"ticker": "AAPL", "low": 1}, [range_alert()])[0], 404)
+        self.assertEqual(self.put("__settings__", {"ticker": "AAPL", "low": 1}, [])[0], 400)
+
+
 class AuthTests(unittest.TestCase):
     def get(self, path, headers=None):
         event = {"requestContext": {"http": {"method": "GET"}}, "rawPath": path, "headers": headers or {}}
