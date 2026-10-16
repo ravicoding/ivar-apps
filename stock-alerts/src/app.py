@@ -323,8 +323,10 @@ def error(status, message):
 
 
 def authorized(headers):
+    if not APP_PASSWORD:  # no password set: the page opens without asking
+        return True
     given = headers.get("x-app-password", "")
-    return bool(APP_PASSWORD) and hmac.compare_digest(given.encode(), APP_PASSWORD.encode())
+    return hmac.compare_digest(given.encode(), APP_PASSWORD.encode())
 
 
 def read_json(event):
@@ -403,7 +405,7 @@ def handle_http(event):
     headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
 
     if method == "GET" and path == "/":
-        return respond(200, {"ok": True, "service": "price-alerts"})
+        return respond(200, {"ok": True, "service": "price-alerts", "auth_required": bool(APP_PASSWORD)})
 
     if not path.startswith("/api/"):
         return error(404, "Not found.")

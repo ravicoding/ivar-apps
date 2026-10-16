@@ -172,5 +172,24 @@ class CreateRangeTests(unittest.TestCase):
         self.assertEqual(app.handle_http(event)["statusCode"], 401)
 
 
+class AuthTests(unittest.TestCase):
+    def get(self, path, headers=None):
+        event = {"requestContext": {"http": {"method": "GET"}}, "rawPath": path, "headers": headers or {}}
+        with mock.patch.object(app, "TABLE", FakeTable([])):
+            r = app.handle_http(event)
+        return r["statusCode"], json.loads(r["body"])
+
+    def test_health_reports_password_required(self):
+        self.assertTrue(self.get("/")[1]["auth_required"])
+        with mock.patch.object(app, "APP_PASSWORD", ""):
+            self.assertFalse(self.get("/")[1]["auth_required"])
+
+    def test_no_password_set_allows_access(self):
+        self.assertEqual(self.get("/api/state")[0], 401)
+        self.assertEqual(self.get("/api/state", {"x-app-password": "secret-pass"})[0], 200)
+        with mock.patch.object(app, "APP_PASSWORD", ""):
+            self.assertEqual(self.get("/api/state")[0], 200)
+
+
 if __name__ == "__main__":
     unittest.main()

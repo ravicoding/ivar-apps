@@ -37,6 +37,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--ink);
@@ -108,6 +109,14 @@ input:focus-visible, select:focus-visible, .btn:focus-visible, .icon-btn:focus-v
 .alert.hit.below-dir .hitnote { color: var(--down); }
 .icon-btn { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; }
 .icon-btn:hover { color: var(--down); }
+.del-btn {
+  font: 600 13px var(--font-body); padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+}
+.del-btn:hover { border-color: var(--down); color: var(--down); }
+.del-btn.confirm { background: var(--down); border-color: var(--down); color: #fff; }
+.del-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#loadErr { max-width: 420px; margin: 12vh auto 0; }
 @media (max-width: 480px) {
   .alert { grid-template-columns: 1fr auto auto; }
   .alert .tk { grid-column: 1 / -1; }
@@ -130,12 +139,18 @@ footer { text-align: center; }
 
 <section id="lock" class="panel" hidden>
   <h1>Price Alerts</h1>
-  <p class="muted small" style="margin:0">Enter the app password you set when you deployed.</p>
+  <p class="muted small" style="margin:0">Enter the Price Alerts password. This browser remembers it, so you'll only be asked once.</p>
   <form id="lockForm" class="row">
     <input id="pw" type="password" autocomplete="current-password" placeholder="Password" style="flex:1 1 180px" required>
     <button class="btn" type="submit">Unlock</button>
   </form>
   <div id="lockMsg" class="msg err" aria-live="polite"></div>
+</section>
+
+<section id="loadErr" class="panel" hidden>
+  <h1>Price Alerts</h1>
+  <p id="loadErrMsg" class="msg err" style="margin:0"></p>
+  <div class="row"><button id="retryBtn" class="btn" type="button">Retry</button></div>
 </section>
 
 <main id="app" class="wrap" hidden>
@@ -170,10 +185,18 @@ footer { text-align: center; }
 
   <section class="panel" aria-labelledby="listTitle">
     <div class="list-head">
-      <h2 id="listTitle">Watchlist</h2>
+      <h2 id="listTitle">Range alerts</h2>
       <span id="counts" class="muted small"></span>
     </div>
     <div id="alerts" class="alerts"></div>
+  </section>
+
+  <section id="targetsPanel" class="panel" aria-labelledby="targetsTitle" hidden>
+    <div class="list-head">
+      <h2 id="targetsTitle">Older target alerts</h2>
+      <span id="targetCounts" class="muted small"></span>
+    </div>
+    <div id="targets" class="alerts"></div>
   </section>
 
   <section class="panel" aria-labelledby="phoneTitle">
@@ -247,9 +270,17 @@ async function api(path, opts = {}) {
   return j;
 }
 
+let authRequired = true;
+
 function showLock(msg = "") {
-  $("#app").hidden = true; $("#lock").hidden = false;
+  $("#app").hidden = true; $("#loadErr").hidden = true; $("#lock").hidden = false;
   $("#lockMsg").textContent = msg; $("#pw").focus();
+}
+
+// A network or server problem is not a password problem: keep the saved password and offer a retry.
+function showLoadError(msg) {
+  $("#app").hidden = true; $("#lock").hidden = true; $("#loadErr").hidden = false;
+  $("#loadErrMsg").textContent = msg;
 }
 
 function setMsg(el, text, kind = "") { el.textContent = text; el.className = "msg " + kind; }
@@ -270,24 +301,58 @@ function renderStatus() {
   if (state.settings.last_error) $("#statusText").title = state.settings.last_error;
 }
 
+// Delete needs two clicks: the first turns the button into "Confirm", the second deletes.
+function deleteButton(a) {
+  const del = document.createElement("button");
+  del.className = "del-btn"; del.type = "button";
+  del.textContent = "Delete";
+  del.setAttribute("aria-label", `Delete ${a.ticker} alert`);
+  let timer = null;
+  del.onclick = async () => {
+    if (!del.classList.contains("confirm")) {
+      del.classList.add("confirm"); del.textContent = "Confirm";
+      del.setAttribute("aria-label", `Confirm deleting the ${a.ticker} alert`);
+      timer = setTimeout(() => { del.classList.remove("confirm"); del.textContent = "Delete"; del.setAttribute("aria-label", `Delete ${a.ticker} alert`); }, 4000);
+      return;
+    }
+    clearTimeout(timer);
+    del.disabled = true; del.textContent = "Deleting…";
+    try {
+      await api(`/api/alerts/${a.id}`, { method: "DELETE" });
+      setMsg($("#addMsg"), `Deleted the ${a.ticker} alert.`, "ok");
+      await refresh();
+    } catch (e) {
+      del.disabled = false; del.classList.remove("confirm"); del.textContent = "Delete";
+      if (e.message !== "locked") setMsg($("#addMsg"), e.message, "err");
+    }
+  };
+  return del;
+}
+
 function renderAlerts() {
+  const ranges = state.alerts.filter((a) => a.kind === "range").sort((a, b) => a.ticker.localeCompare(b.ticker));
+  const targets = state.alerts.filter((a) => a.kind !== "range");
+  const outside = ranges.filter((a) => a.zone && a.zone !== "inside").length;
+  $("#counts").textContent = ranges.length ? `${ranges.length} alert${ranges.length > 1 ? "s" : ""}` + (outside ? ` · ${outside} outside range` : "") : "";
+
   const box = $("#alerts");
   box.textContent = "";
-  const watching = state.alerts.filter((a) => a.status === "watching");
-  const hit = state.alerts.filter((a) => a.status !== "watching").sort((a, b) => (b.triggered_at || "").localeCompare(a.triggered_at || ""));
-  const outside = watching.filter((a) => a.kind === "range" && a.zone && a.zone !== "inside").length;
-  $("#counts").textContent = state.alerts.length ? `${watching.length} watching` + (outside ? ` · ${outside} outside range` : "") + (hit.length ? ` · ${hit.length} hit` : "") : "";
-
-  if (!state.alerts.length) {
+  if (!ranges.length) {
     const p = document.createElement("div");
     p.className = "empty";
-    p.textContent = "No alerts yet. Add a ticker with a low and high price above, for example AAPL between 185 and 230.";
+    p.textContent = "No range alerts yet. Add a ticker with a low and high price above, for example AAPL between 185 and 230.";
     box.append(p);
-    return;
   }
+  for (const a of ranges) box.append(rangeRow(a));
 
+  // Single-target alerts from before ranges existed: shown only if any are left.
+  $("#targetsPanel").hidden = !targets.length;
+  const tbox = $("#targets");
+  tbox.textContent = "";
+  const watching = targets.filter((a) => a.status === "watching");
+  const hit = targets.filter((a) => a.status !== "watching").sort((a, b) => (b.triggered_at || "").localeCompare(a.triggered_at || ""));
+  $("#targetCounts").textContent = targets.length ? `${watching.length} watching · ${hit.length} hit` : "";
   for (const a of [...watching, ...hit]) {
-    if (a.kind === "range") { box.append(rangeRow(a)); continue; }
     const isHit = a.status !== "watching";
     const row = document.createElement("div");
     row.className = "alert" + (isHit ? " hit" : "") + (a.direction === "below" ? " below-dir" : "");
@@ -321,18 +386,8 @@ function renderAlerts() {
     pill.textContent = (a.direction === "above" ? "≥ " : "≤ ") + money(a.target);
     pill.title = a.direction === "above" ? "Notify when price rises to or above this" : "Notify when price falls to or below this";
 
-    const del = document.createElement("button");
-    del.className = "icon-btn"; del.type = "button";
-    del.setAttribute("aria-label", `Delete ${a.ticker} alert`);
-    del.textContent = "×";
-    del.onclick = async () => {
-      del.disabled = true;
-      try { await api(`/api/alerts/${a.id}`, { method: "DELETE" }); await refresh(); }
-      catch (e) { del.disabled = false; if (e.message !== "locked") setMsg($("#addMsg"), e.message, "err"); }
-    };
-
-    row.append(tk, detail, pill, del);
-    box.append(row);
+    row.append(tk, detail, pill, deleteButton(a));
+    tbox.append(row);
   }
 }
 
@@ -374,16 +429,7 @@ function rangeRow(a) {
   pill.title = a.low != null && a.high != null ? "Notify when the price leaves this range"
     : a.low != null ? "Notify when the price falls to this low" : "Notify when the price rises to this high";
 
-  const del = document.createElement("button");
-  del.className = "icon-btn"; del.type = "button";
-  del.setAttribute("aria-label", `Delete ${a.ticker} alert`);
-  del.textContent = "×";
-  del.onclick = async () => {
-    del.disabled = true;
-    try { await api(`/api/alerts/${a.id}`, { method: "DELETE" }); await refresh(); }
-    catch (e) { del.disabled = false; if (e.message !== "locked") setMsg($("#addMsg"), e.message, "err"); }
-  };
-  row.append(tk, detail, pill, del);
+  row.append(tk, detail, pill, deleteButton(a));
   return row;
 }
 
@@ -405,7 +451,8 @@ function render() {
 
 async function refresh() {
   state = await api("/api/state");
-  $("#lock").hidden = true; $("#app").hidden = false;
+  $("#lock").hidden = true; $("#loadErr").hidden = true; $("#app").hidden = false;
+  $("#signOut").hidden = !authRequired;
   render();
 }
 
@@ -469,8 +516,22 @@ $("#testBtn").onclick = async () => {
 };
 $("#signOut").onclick = () => { store.del("pa_pw"); password = ""; showLock(); };
 
-if (password) refresh().catch((e) => { if (e.message !== "locked") showLock(e.message); });
-else showLock();
+async function start() {
+  // Ask the service whether a password is set at all; if not, never show the password box.
+  try {
+    const r = await fetch(API + "/");
+    const j = await r.json();
+    authRequired = j.auth_required !== false;
+  } catch {
+    authRequired = true;  // unknown: fall through and let /api/state decide
+  }
+  if (!authRequired) password = "";
+  if (authRequired && !password) return showLock();
+  try { await refresh(); }
+  catch (e) { if (e.message !== "locked") showLoadError(e.message); }
+}
+$("#retryBtn").onclick = start;
+start();
 setInterval(() => { if (!$("#app").hidden && document.visibilityState === "visible") refresh().catch(() => {}); }, 60000);
 </script>
 </body>
