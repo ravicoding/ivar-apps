@@ -40,6 +40,11 @@ class FakeTable:
                     ExpressionAttributeNames=None, ConditionExpression=None):
         if ConditionExpression is not None and self.zone_conflict:
             raise ConditionFailed()
+        # Like DynamoDB: every value placeholder must be used somewhere in the request.
+        # (Placeholders made by boto3 condition objects are added later by boto3 itself.)
+        for key in ExpressionAttributeValues or {}:
+            if not re.search(re.escape(key) + r"\b", UpdateExpression):
+                raise ValueError(f"Value provided in ExpressionAttributeValues unused in expressions: keys: {{{key}}}")
         vals = app.from_ddb(ExpressionAttributeValues or {})
         names = ExpressionAttributeNames or {}
         item = self.items.setdefault(Key["id"], {"id": Key["id"]})
@@ -109,6 +114,20 @@ class RangeTests(unittest.TestCase):
         self.push.assert_called_once()
         self.assertEqual(self.push.call_args[0][0], "stocks-abc")
 
+    def test_one_failing_alert_does_not_stop_others(self):
+        t = FakeTable([range_alert(id="bad"), range_alert(id="good", ticker="MSFT")])
+        real = app.check_range
+        def flaky(a, *args):
+            if a["id"] == "bad":
+                raise RuntimeError("boom")
+            return real(a, *args)
+        with mock.patch.object(app, "check_range", side_effect=flaky), mock.patch.object(app, "TABLE", t), \
+             mock.patch.object(app, "get_prices", return_value=({"AAPL": 95, "MSFT": 95}, [])):
+            r = app.run_check()
+        self.assertEqual(r["hits"], 1)
+        self.assertIn("AAPL: boom", r["errors"])
+        self.assertEqual(t.items[app.SETTINGS_ID]["last_error"], "AAPL: boom")
+
     def test_target_alerts_still_work(self):
         t = FakeTable([{"id": "t1", "ticker": "AAPL", "target": 120.0, "direction": "above",
                         "status": "watching", "created_at": "x"}])
@@ -151,6 +170,25 @@ class CreateRangeTests(unittest.TestCase):
     def test_requires_password(self):
         event = {"requestContext": {"http": {"method": "POST"}}, "rawPath": "/api/alerts", "headers": {}, "body": "{}"}
         self.assertEqual(app.handle_http(event)["statusCode"], 401)
+
+
+class AuthTests(unittest.TestCase):
+    def get(self, path, headers=None):
+        event = {"requestContext": {"http": {"method": "GET"}}, "rawPath": path, "headers": headers or {}}
+        with mock.patch.object(app, "TABLE", FakeTable([])):
+            r = app.handle_http(event)
+        return r["statusCode"], json.loads(r["body"])
+
+    def test_health_reports_password_required(self):
+        self.assertTrue(self.get("/")[1]["auth_required"])
+        with mock.patch.object(app, "APP_PASSWORD", ""):
+            self.assertFalse(self.get("/")[1]["auth_required"])
+
+    def test_no_password_set_allows_access(self):
+        self.assertEqual(self.get("/api/state")[0], 401)
+        self.assertEqual(self.get("/api/state", {"x-app-password": "secret-pass"})[0], 200)
+        with mock.patch.object(app, "APP_PASSWORD", ""):
+            self.assertEqual(self.get("/api/state")[0], 200)
 
 
 if __name__ == "__main__":

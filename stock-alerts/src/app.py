@@ -225,8 +225,11 @@ def run_check():
         if p is None:
             continue
         if a.get("kind") == "range":
-            if check_range(a, p, stamp, topic, errors):
-                hits += 1
+            try:
+                if check_range(a, p, stamp, topic, errors):
+                    hits += 1
+            except Exception as e:  # one bad alert must not stop the others
+                errors.append(f"{a['ticker']}: {e}")
             continue
         if hit_target(p, a["target"], a["direction"]):
             try:
@@ -273,7 +276,7 @@ def check_range(a, p, stamp, topic, errors):
             ExpressionAttributeValues=to_ddb({":p": p, ":ts": stamp}),
         )
         return False
-    fields = {":z": new, ":old": old, ":p": p, ":ts": stamp}
+    fields = {":z": new, ":p": p, ":ts": stamp}
     update = "SET #z = :z, last_price = :p, last_checked = :ts"
     if new != "inside":
         update += ", triggered_at = :ts, triggered_price = :p, alerts_sent = if_not_exists(alerts_sent, :zero) + :one"
@@ -320,8 +323,10 @@ def error(status, message):
 
 
 def authorized(headers):
+    if not APP_PASSWORD:  # no password set: the page opens without asking
+        return True
     given = headers.get("x-app-password", "")
-    return bool(APP_PASSWORD) and hmac.compare_digest(given.encode(), APP_PASSWORD.encode())
+    return hmac.compare_digest(given.encode(), APP_PASSWORD.encode())
 
 
 def read_json(event):
@@ -400,7 +405,7 @@ def handle_http(event):
     headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
 
     if method == "GET" and path == "/":
-        return respond(200, {"ok": True, "service": "price-alerts"})
+        return respond(200, {"ok": True, "service": "price-alerts", "auth_required": bool(APP_PASSWORD)})
 
     if not path.startswith("/api/"):
         return error(404, "Not found.")

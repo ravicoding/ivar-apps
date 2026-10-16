@@ -6,8 +6,9 @@ Parameters:
   AppPassword:
     Type: String
     NoEcho: true
-    MinLength: 8
-    Description: Password for the settings page (at least 8 characters).
+    AllowedPattern: "^(.{8,})?$"
+    ConstraintDescription: Use at least 8 characters, or leave it blank for no password.
+    Description: Password for the settings page (at least 8 characters). Blank means anyone with the page address can change your alerts.
   PhoneNumber:
     Type: String
     Default: ""
