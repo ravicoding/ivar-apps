@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade Log | Ivar Solutions Inc</title>
+<meta name="description" content="Stock trade log with a monthly profit and loss report.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#fdf0e3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1916" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="https://ivarsolutions.net/img/logo/touch.png">
+<link rel="apple-touch-icon" href="https://ivarsolutions.net/img/logo/touch.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Style: Broadsheet (same tokens as ivarsolutions.net) */
+  :root {
+    --bg: #fdf0e3; --surface: #fffaf3; --surface2: #f6e1cc; --ink: #2b2723; --muted: #5a524a; --line: #d9c3ad; --rule: #2b2723;
+    --accent: #2b2723; --accent-ink: #fdf0e3; --signal: #a3241c; --link: #0f5499; --gain: #1f6b45; --loss: #b3261e;
+    --gain-soft: #dcefe3; --loss-soft: #f8dcd8;
+    --display: "Playfair Display", "Times New Roman", Georgia, serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1916; --surface: #25211d; --surface2: #2f2924; --ink: #f1e6da; --muted: #c3b5a6; --line: #3d362f; --rule: #f1e6da;
+      --accent: #f1e6da; --accent-ink: #1c1916; --signal: #ef7a6e; --link: #8dbcf0; --gain: #7fc8a0; --loss: #ff8a80;
+      --gain-soft: #1f3529; --loss-soft: #3f2422;
+      color-scheme: dark;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: clamp(1rem, 0.96rem + 0.2vw, 1.08rem)/1.55 var(--serif); min-height: 100dvh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; font-family: var(--sans); -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .gain { color: var(--gain); } .loss { color: var(--loss); }
+
+  /* Company masthead and footer, same as ivarsolutions.net */
+  .wrap { width: min(1140px, 100% - clamp(32px, 8vw, 96px)); margin-inline: auto; }
+  .site-header { background: var(--bg); border-bottom: 4px double var(--rule); padding-top: env(safe-area-inset-top); }
+  .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 32px; padding-block: 12px; }
+  .site-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); font: 900 1.6rem/1 var(--display); letter-spacing: -0.01em; }
+  .site-brand img { width: 44px; height: 44px; border-radius: 50%; padding: 3px; background: #fff; border: 1px solid var(--line); object-fit: contain; }
+  .site-nav { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; padding: 0; list-style: none; font: 600 0.74rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .site-nav a { display: inline-block; text-decoration: none; color: var(--muted); padding-block: 4px; border-bottom: 2px solid transparent; }
+  .site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--signal); }
+  .site-footer { margin-top: 48px; border-top: 4px double var(--rule); padding-block: 24px calc(24px + env(safe-area-inset-bottom)); color: var(--muted); font: 600 0.72rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; }
+  .site-footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+  .site-footer button { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-decoration: underline; text-underline-offset: 4px; }
+
+  /* App */
+  main { flex: 1 0 auto; }
+  .head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding-block: 28px 18px; border-bottom: 1px solid var(--rule); }
+  h1 { margin: 0; font: 900 clamp(2rem, 4.5vw, 3rem)/1 var(--display); letter-spacing: -0.015em; }
+  .kicker { display: block; margin-bottom: 8px; font: 700 0.72rem var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--signal); }
+  .tabs { display: flex; gap: 0; border: 1px solid var(--rule); }
+  .tabs button { min-height: 42px; padding: 8px 18px; border: 0; background: transparent; font: 700 0.74rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .tabs button + button { border-left: 1px solid var(--rule); }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+
+  h2 { margin: 0; font: 700 0.78rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; }
+  .section { padding-block: 24px; border-bottom: 1px solid var(--line); }
+  .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .label { font: 600 0.68rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  input, select, textarea { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 0; background: var(--surface); }
+  textarea { min-height: 44px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { border-color: var(--rule); }
+  #ticker, #fTicker { text-transform: uppercase; font-family: var(--mono); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 20px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 0.76rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+  .btn:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+  .btn.ghost:hover:not(:disabled) { color: #fff; }
+  .btn:disabled { opacity: .5; cursor: progress; }
+  .msg { min-height: 1.4em; font: 0.9rem var(--sans); }
+  .msg.err { color: var(--loss); } .msg.ok { color: var(--gain); }
+
+  form.trade { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 14px; align-items: end; }
+  form.trade .f-ticker { grid-column: span 2; } form.trade .f-qty { grid-column: span 1; }
+  form.trade .f-bp, form.trade .f-sp { grid-column: span 1; } form.trade .f-bd, form.trade .f-sd { grid-column: span 2; }
+  form.trade .f-notes { grid-column: span 3; }
+  form.trade .f-actions { grid-column: span 2; display: flex; gap: 8px; }
+  form.trade .f-actions .btn { flex: 1; }
+  .sell-group { display: contents; }
+  .preview { grid-column: span 4; align-self: center; font: 0.92rem var(--sans); color: var(--muted); min-height: 1.4em; }
+  .fieldset-label { grid-column: 1 / -1; margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--line); font: 700 0.68rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .fieldset-label:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+  .fieldset-label span { font-weight: 400; letter-spacing: 0.04em; text-transform: none; font-style: italic; font-family: var(--serif); font-size: 0.85rem; }
+  @media (max-width: 760px) {
+    form.trade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    form.trade > * { grid-column: span 1 !important; }
+    form.trade .f-ticker, form.trade .f-notes, form.trade .f-actions, form.trade .preview, form.trade .fieldset-label { grid-column: 1 / -1 !important; }
+  }
+  .editing-banner { margin-bottom: 12px; padding: 8px 12px; background: var(--surface2); font: 600 0.85rem var(--sans); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .filters input { width: 150px; min-height: 38px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); }
+  .seg button { min-height: 38px; padding: 4px 12px; border: 0; background: transparent; font: 600 0.72rem var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { background: var(--surface2); color: var(--ink); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  th { text-align: left; font: 600 0.66rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--rule); white-space: nowrap; }
+  td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th.r, td.r { text-align: right; }
+  .tk { font: 700 1rem var(--mono); }
+  .sub { display: block; color: var(--muted); font: 0.78rem var(--sans); }
+  .note { display: block; margin-top: 2px; color: var(--muted); font-style: italic; font-size: 0.85rem; overflow-wrap: anywhere; }
+  .tag { display: inline-block; padding: 1px 7px; font: 700 0.62rem var(--sans); letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--line); color: var(--muted); }
+  .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .mini { min-height: 34px; padding: 4px 10px; border: 1px solid var(--line); background: transparent; font: 600 0.72rem var(--sans); color: var(--muted); }
+  .mini:hover { border-color: var(--rule); color: var(--ink); }
+  .mini.danger:hover, .mini.confirm { border-color: var(--loss); color: var(--loss); }
+  .mini.confirm { background: var(--loss); color: #fff; }
+  .empty { padding: 28px 8px; text-align: center; color: var(--muted); font-style: italic; }
+  .table-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-top: 10px; color: var(--muted); font: 0.85rem var(--sans); }
+
+  /* Trades table becomes cards on phones */
+  @media (max-width: 760px) {
+    #tradeTable thead { display: none; }
+    #tradeTable, #tradeTable tbody, #tradeTable tr, #tradeTable td { display: block; }
+    #tradeTable tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    #tradeTable td { padding: 0; border: 0; text-align: left; }
+    #tradeTable td[data-k="pl"] { text-align: right; grid-row: 1; grid-column: 2; }
+    #tradeTable td[data-k="buy"], #tradeTable td[data-k="sell"] { grid-column: 1 / -1; font-size: 0.88rem; }
+    #tradeTable td.holding { display: none; }
+    #tradeTable td[data-k="buy"]::before { content: "Bought "; color: var(--muted); font: 0.78rem var(--sans); }
+    #tradeTable td[data-k="sell"]::before { content: "Sold "; color: var(--muted); font: 0.78rem var(--sans); }
+    #tradeTable td[data-k="buy"] .sub, #tradeTable td[data-k="sell"] .sub { display: inline; margin-left: 6px; }
+    #tradeTable td[data-k="actions"] { grid-column: 1 / -1; }
+    #tradeTable td[data-k="actions"] .row-actions { justify-content: flex-start; margin-top: 4px; }
+  }
+
+  /* Report */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 2px solid var(--rule); border-bottom: 1px solid var(--line); }
+  .stat { padding: 14px 16px 14px 0; }
+  .stat + .stat { padding-left: 16px; border-left: 1px solid var(--line); }
+  .stat .v { display: block; font: 700 clamp(1.3rem, 3vw, 1.9rem)/1.15 var(--mono); font-variant-numeric: tabular-nums; }
+  .stat .s { display: block; margin-top: 4px; color: var(--muted); font: 0.8rem var(--sans); }
+  @media (max-width: 640px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat:nth-child(3) { padding-left: 0; border-left: 0; } .stat:nth-child(n+3) { border-top: 1px solid var(--line); } }
+
+  .chart { position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; height: 220px; margin: 22px 0 6px; }
+  .chart::after { content: ""; position: absolute; left: 0; right: 0; top: var(--zero); border-top: 1px solid var(--rule); pointer-events: none; }
+  .col { position: relative; height: 100%; border: 0; padding: 0; background: transparent; }
+  .col:hover, .col.sel { background: var(--surface2); }
+  .bar { position: absolute; left: 18%; right: 18%; }
+  .bar.gain { background: var(--gain); } .bar.loss { background: var(--loss); }
+  .chart-labels { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 6px; text-align: center; font: 600 0.66rem var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  #monthTable tr.month { cursor: pointer; }
+  #monthTable tr.month:hover td { background: var(--surface); }
+  #monthTable tr.month.none td { color: var(--muted); }
+  #monthTable tr.detail td { background: var(--surface); padding: 6px 10px 12px; }
+  #monthTable tr.total td { border-top: 2px solid var(--rule); border-bottom: 0; font-weight: 700; }
+  .caret { display: inline-block; width: 1em; color: var(--muted); }
+  .detail-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+  .detail-list li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dotted var(--line); }
+  .detail-list li:last-child { border-bottom: 0; }
+  @media (max-width: 640px) { #monthTable .hide-sm { display: none; } }
+  .report-note { margin-top: 12px; color: var(--muted); font: italic 0.92rem var(--serif); }
+
+  /* Lock */
+  .lock { max-width: 420px; margin: 8vh auto 0; padding: 24px; border: 1px solid var(--rule); background: var(--surface); display: grid; gap: 12px; }
+  .lock h2 { font: 900 1.6rem var(--display); letter-spacing: 0; text-transform: none; }
+  .lock form { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-brand" href="https://ivarsolutions.net/">
+      <img src="https://ivarsolutions.net/img/logo/touch.png" alt="" width="52" height="52">
+      Ivar Solutions Inc
+    </a>
+    <nav aria-label="Main">
+      <ul class="site-nav">
+        <li><a href="https://ivarsolutions.net/#about">About</a></li>
+        <li><a href="https://ivarsolutions.net/#clients">Clients</a></li>
+        <li><a href="https://ivarsolutions.net/#publications">Publications</a></li>
+        <li><a href="https://ivarsolutions.net/#skills">Skills</a></li>
+        <li><a href="https://ivarsolutions.net/#contact">Contact</a></li>
+        <li><a href="https://ivarsolutions.net/daylog.html">Daylog</a></li>
+        <li><a href="/" aria-current="page">Trade Log</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <section id="lock" class="lock" hidden aria-labelledby="lockTitle">
+    <h2 id="lockTitle">Trade Log</h2>
+    <p>Enter the password. This browser remembers it, so you'll only be asked once.</p>
+    <form id="lockForm">
+      <label class="sr" for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit">Unlock</button>
+    </form>
+    <div id="lockMsg" class="msg err" aria-live="polite"></div>
+  </section>
+
+  <section id="loadErr" class="lock" hidden>
+    <h2>Couldn't load</h2>
+    <p id="loadErrMsg" class="msg err"></p>
+    <div><button id="retry" class="btn" type="button">Try again</button></div>
+  </section>
+
+  <div id="app" hidden>
+    <div class="head">
+      <div>
+        <span class="kicker">Stock trades</span>
+        <h1>Trade Log</h1>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button type="button" role="tab" id="tabTrades" aria-controls="viewTrades" aria-selected="true">Trades</button>
+        <button type="button" role="tab" id="tabReport" aria-controls="viewReport" aria-selected="false">Monthly report</button>
+      </div>
+    </div>
+
+    <!-- Trades -->
+    <div id="viewTrades" role="tabpanel" aria-labelledby="tabTrades">
+      <section class="section" aria-labelledby="formTitle">
+        <div class="section-head"><h2 id="formTitle">Add a trade</h2></div>
+        <div id="editBanner" class="editing-banner" hidden></div>
+        <form id="tradeForm" class="trade" novalidate>
+          <div class="fieldset-label">Buy</div>
+          <div class="field f-ticker"><label class="label" for="fTicker">Ticker</label><input id="fTicker" name="ticker" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAPL" maxlength="15" required></div>
+          <div class="field f-qty"><label class="label" for="fQty">Quantity</label><input id="fQty" name="quantity" inputmode="decimal" placeholder="10" required></div>
+          <div class="field f-bp"><label class="label" for="fBuyPrice">Buy price ($)</label><input id="fBuyPrice" name="buy_price" inputmode="decimal" placeholder="150.25" required></div>
+          <div class="field f-bd"><label class="label" for="fBuyDate">Buy date</label><input id="fBuyDate" name="buy_date" type="date" required></div>
+          <div class="fieldset-label">Sell <span>leave blank if you still hold it</span></div>
+          <div class="field f-sp"><label class="label" for="fSellPrice">Sell price ($)</label><input id="fSellPrice" name="sell_price" inputmode="decimal" placeholder="160.75"></div>
+          <div class="field f-sd"><label class="label" for="fSellDate">Sell date</label><input id="fSellDate" name="sell_date" type="date"></div>
+          <div class="field f-notes"><label class="label" for="fNotes">Notes (optional)</label><input id="fNotes" name="notes" maxlength="500" placeholder="Why you bought or sold"></div>
+          <div class="preview num" id="preview" aria-live="polite"></div>
+          <div class="f-actions">
+            <button class="btn" type="submit" id="saveBtn">Add trade</button>
+            <button class="btn ghost" type="button" id="cancelBtn" hidden>Cancel</button>
+          </div>
+        </form>
+        <div id="formMsg" class="msg" aria-live="polite"></div>
+      </section>
+
+      <section class="section" aria-labelledby="listTitle">
+        <div class="section-head">
+          <h2 id="listTitle">Trades</h2>
+          <div class="filters">
+            <div class="seg" role="group" aria-label="Show">
+              <button type="button" data-f="all" aria-pressed="true">All</button>
+              <button type="button" data-f="open" aria-pressed="false">Holding</button>
+              <button type="button" data-f="closed" aria-pressed="false">Sold</button>
+            </div>
+            <label class="sr" for="search">Filter by ticker</label>
+            <input id="search" type="search" placeholder="Filter ticker" autocomplete="off" autocapitalize="characters">
+          </div>
+        </div>
+        <table id="tradeTable">
+          <thead><tr><th>Ticker</th><th>Bought</th><th>Sold</th><th class="r">Profit / loss</th><th><span class="sr">Actions</span></th></tr></thead>
+          <tbody id="tradeRows"></tbody>
+        </table>
+        <div class="table-foot"><span id="tradeCount"></span><span id="tradeSum" class="num"></span></div>
+        <div id="listMsg" class="msg" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <!-- Report -->
+    <div id="viewReport" role="tabpanel" aria-labelledby="tabReport" hidden>
+      <section class="section" aria-labelledby="reportTitle">
+        <div class="section-head">
+          <h2 id="reportTitle">Monthly profit and loss</h2>
+          <div class="filters">
+            <label class="sr" for="year">Year</label>
+            <select id="year" style="width:auto;min-height:38px"></select>
+            <button class="mini" type="button" id="csvBtn">Download CSV</button>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="chart" id="chart" aria-hidden="true"></div>
+        <div class="chart-labels" aria-hidden="true">
+          <span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span>
+        </div>
+        <table id="monthTable" style="margin-top:22px">
+          <thead><tr><th>Month</th><th class="r">Trades</th><th class="r hide-sm">Won / lost</th><th class="r hide-sm">Cost</th><th class="r hide-sm">Proceeds</th><th class="r">Profit / loss</th><th class="r hide-sm">Return</th></tr></thead>
+          <tbody id="monthRows"></tbody>
+        </table>
+        <p class="report-note">Profit and loss is realized: each sold trade counts in the month of its sell date. Positions you still hold aren't included. Fees and taxes aren't tracked.</p>
+        <div id="reportMsg" class="msg" aria-live="polite"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><span>&copy; 2022&ndash;2026 Ivar Solutions Inc</span><button id="signOut" type="button" hidden>Sign out of this device</button></div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode */ } },
+    del(k) { try { localStorage.removeItem(k); } catch { /* private mode */ } },
+  };
+  const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+  const money = (n) => usd.format(n);
+  const signed = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + usd.format(Math.abs(n));
+  const pct = (n) => n == null ? "—" : (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n).toFixed(2) + "%";
+  const cls = (n) => n > 0 ? "gain" : n < 0 ? "loss" : "";
+  const qtyText = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 6 });
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dateText = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+  const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids.filter((k) => k != null)); return e; };
+  const setMsg = (node, text, kind = "") => { node.textContent = text; node.className = "msg " + kind; };
+
+  let password = store.get("tl_pw") || "";
+  let authRequired = true;
+  let trades = [];
+  let report = null;
+  let filter = "all";
+  let editingId = null;
+  let openMonth = null;
+
+  async function api(path, opts = {}) {
+    let r;
+    try {
+      r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", "x-app-password": password } });
+    } catch { throw new Error("Couldn't reach the server. Check your connection and try again."); }
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { store.del("tl_pw"); showLock(password ? "Wrong password. Try again." : ""); throw new Error("locked"); }
+    if (!r.ok) throw new Error(j.error || `Request failed (${r.status}).`);
+    return j;
+  }
+
+  function showLock(msg) {
+    $("#app").hidden = true; $("#loadErr").hidden = true; $("#lock").hidden = false;
+    $("#lockMsg").textContent = msg || ""; $("#pw").focus();
+  }
+  function showApp() {
+    $("#lock").hidden = true; $("#loadErr").hidden = true; $("#app").hidden = false;
+    $("#signOut").hidden = !authRequired;
+  }
+
+  /* ---------- trades ---------- */
+
+  async function loadTrades() {
+    trades = (await api("/api/trades")).trades;
+    renderTrades();
+  }
+
+  function deleteButton(t) {
+    const b = el("button", { type: "button", className: "mini danger", textContent: "Delete" });
+    b.setAttribute("aria-label", `Delete ${t.ticker} trade`);
+    let timer;
+    b.onclick = async () => {
+      if (!b.classList.contains("confirm")) {
+        b.classList.add("confirm"); b.textContent = "Confirm";
+        timer = setTimeout(() => { b.classList.remove("confirm"); b.textContent = "Delete"; }, 4000);
+        return;
+      }
+      clearTimeout(timer); b.disabled = true; b.textContent = "Deleting…";
+      try {
+        await api(`/api/trades/${t.id}`, { method: "DELETE" });
+        if (editingId === t.id) stopEditing();
+        setMsg($("#listMsg"), `Deleted the ${t.ticker} trade.`, "ok");
+        report = null;
+        await loadTrades();
+      } catch (e) {
+        b.disabled = false; b.classList.remove("confirm"); b.textContent = "Delete";
+        if (e.message !== "locked") setMsg($("#listMsg"), e.message, "err");
+      }
+    };
+    return b;
+  }
+
+  function renderTrades() {
+    const q = $("#search").value.trim().toUpperCase();
+    const rows = trades.filter((t) => (filter === "all" || t.status === filter) && (!q || t.ticker.includes(q)));
+    const body = $("#tradeRows");
+    body.textContent = "";
+    if (!rows.length) {
+      body.append(el("tr", {}, el("td", { colSpan: 5, className: "empty", textContent:
+        trades.length ? "No trades match this filter." : "No trades yet. Add your first one above." })));
+    }
+    for (const t of rows) {
+      const tk = el("td", {}, el("span", { className: "tk", textContent: t.ticker }));
+      if (t.status === "open") tk.append(" ", el("span", { className: "tag", textContent: "Holding" }));
+      if (t.notes) tk.append(el("span", { className: "note", textContent: t.notes }));
+      const buy = el("td", {}, el("span", { className: "num", textContent: `${qtyText(t.quantity)} sh @ ${money(t.buy_price)}` }), el("span", { className: "sub", textContent: dateText(t.buy_date) }));
+      const sell = t.status === "closed"
+        ? el("td", {}, el("span", { className: "num", textContent: money(t.sell_price) }), el("span", { className: "sub", textContent: dateText(t.sell_date) }))
+        : el("td", { className: "holding" }, el("span", { className: "sub", textContent: "Still holding" }));
+      const pl = t.status === "closed"
+        ? el("td", { className: "r" }, el("span", { className: "num " + cls(t.pnl), textContent: signed(t.pnl) }), el("span", { className: "sub " + cls(t.pnl), textContent: pct(t.pnl_pct) }))
+        : el("td", { className: "r" }, el("span", { className: "num", textContent: money(t.cost) }), el("span", { className: "sub", textContent: "cost" }));
+      const edit = el("button", { type: "button", className: "mini", textContent: "Edit" });
+      edit.setAttribute("aria-label", `Edit ${t.ticker} trade`);
+      edit.onclick = () => startEditing(t);
+      const actions = el("td", {}, el("div", { className: "row-actions" }, edit, deleteButton(t)));
+      [[tk, "tk"], [buy, "buy"], [sell, "sell"], [pl, "pl"], [actions, "actions"]].forEach(([c, k]) => { c.dataset.k = k; });
+      const tr = el("tr", {}, tk, buy, sell, pl, actions);
+      body.append(tr);
+    }
+    const closed = rows.filter((t) => t.status === "closed");
+    const total = closed.reduce((s, t) => s + t.pnl, 0);
+    $("#tradeCount").textContent = rows.length ? `${rows.length} trade${rows.length > 1 ? "s" : ""} · ${rows.length - closed.length} holding` : "";
+    const sum = $("#tradeSum");
+    sum.textContent = closed.length ? `Realized ${signed(total)}` : "";
+    sum.className = "num " + cls(total);
+  }
+
+  /* ---------- form ---------- */
+
+  const form = $("#tradeForm");
+  const fields = ["ticker", "quantity", "buy_price", "buy_date", "sell_price", "sell_date", "notes"];
+  const values = () => Object.fromEntries(fields.map((f) => [f, form.elements[f].value.trim()]));
+  const num = (s) => Number(String(s).replace(/[$,\s]/g, ""));
+
+  function check(v) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9.\-^=]{0,14}$/.test(v.ticker)) return ["ticker", "Enter a ticker symbol, like AAPL or BRK.B."];
+    if (!(num(v.quantity) > 0)) return ["quantity", "Enter the quantity, a number above zero."];
+    if (!(num(v.buy_price) > 0)) return ["buy_price", "Enter the buy price, a number above zero."];
+    if (!v.buy_date) return ["buy_date", "Enter the buy date."];
+    if (v.buy_date > today()) return ["buy_date", "The buy date can't be in the future."];
+    if (v.sell_price && !(num(v.sell_price) > 0)) return ["sell_price", "The sell price must be a number above zero."];
+    if (!!v.sell_price !== !!v.sell_date) return [v.sell_price ? "sell_date" : "sell_price", "Enter both the sell price and the sell date, or leave both blank if you still hold it."];
+    if (v.sell_date && v.sell_date < v.buy_date) return ["sell_date", "The sell date can't be before the buy date."];
+    if (v.sell_date && v.sell_date > today()) return ["sell_date", "The sell date can't be in the future."];
+    return null;
+  }
+
+  function updatePreview() {
+    const v = values(), q = num(v.quantity), b = num(v.buy_price), s = num(v.sell_price);
+    const p = $("#preview");
+    p.className = "preview num";
+    if (!(q > 0 && b > 0)) { p.textContent = ""; return; }
+    if (v.sell_price && s > 0) {
+      const pl = q * (s - b);
+      p.textContent = `Cost ${money(q * b)} · proceeds ${money(q * s)} · ${signed(pl)} (${pct((s / b - 1) * 100)})`;
+      p.classList.add(cls(pl));
+    } else {
+      p.textContent = `Cost ${money(q * b)}`;
+    }
+  }
+
+  function startEditing(t) {
+    editingId = t.id;
+    for (const f of fields) form.elements[f].value = t[f] ?? "";
+    $("#formTitle").textContent = "Edit trade";
+    $("#editBanner").textContent = `Editing ${t.ticker}, bought ${dateText(t.buy_date)}. Change any field and save.`;
+    $("#editBanner").hidden = false;
+    $("#saveBtn").textContent = "Save changes";
+    $("#cancelBtn").hidden = false;
+    setMsg($("#formMsg"), "");
+    updatePreview();
+    form.scrollIntoView({ behavior: "smooth", block: "center" });
+    form.elements.sell_price.focus({ preventScroll: true });
+  }
+
+  function stopEditing() {
+    editingId = null;
+    form.reset();
+    form.elements.buy_date.value = today();
+    $("#formTitle").textContent = "Add a trade";
+    $("#editBanner").hidden = true;
+    $("#saveBtn").textContent = "Add trade";
+    $("#cancelBtn").hidden = true;
+    updatePreview();
+  }
+
+  form.addEventListener("input", updatePreview);
+  $("#cancelBtn").onclick = () => { stopEditing(); setMsg($("#formMsg"), ""); };
+  form.addEventListener("keydown", (e) => { if (e.key === "Escape" && editingId) { stopEditing(); setMsg($("#formMsg"), ""); } });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = values();
+    const bad = check(v);
+    if (bad) { setMsg($("#formMsg"), bad[1], "err"); form.elements[bad[0]].focus(); return; }
+    const btn = $("#saveBtn");
+    btn.disabled = true;
+    try {
+      const t = editingId
+        ? await api(`/api/trades/${editingId}`, { method: "PUT", body: JSON.stringify(v) })
+        : await api("/api/trades", { method: "POST", body: JSON.stringify(v) });
+      const what = t.status === "closed" ? `${signed(t.pnl)} (${pct(t.pnl_pct)})` : `holding, cost ${money(t.cost)}`;
+      setMsg($("#formMsg"), `${editingId ? "Saved" : "Added"} ${t.ticker}: ${what}.`, "ok");
+      stopEditing();
+      report = null;
+      await loadTrades();
+      form.elements.ticker.focus();
+    } catch (err) {
+      if (err.message !== "locked") setMsg($("#formMsg"), err.message, "err");
+    } finally { btn.disabled = false; }
+  });
+
+  document.querySelectorAll(".seg button").forEach((b) => {
+    b.onclick = () => {
+      filter = b.dataset.f;
+      document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderTrades();
+    };
+  });
+  $("#search").addEventListener("input", renderTrades);
+
+  /* ---------- report ---------- */
+
+  async function loadReport(year) {
+    report = await api("/api/report" + (year ? `?year=${encodeURIComponent(year)}` : ""));
+    if (!trades.length) trades = (await api("/api/trades")).trades;
+    renderReport();
+  }
+
+  function renderReport() {
+    const r = report;
+    const sel = $("#year");
+    sel.textContent = "";
+    for (const y of r.years) sel.append(el("option", { value: y, textContent: y, selected: y === r.year }));
+
+    const t = r.total;
+    const winRate = t.trades ? Math.round(t.wins / t.trades * 100) + "%" : "—";
+    const stat = (label, value, sub, c = "") => el("div", { className: "stat" },
+      el("span", { className: "label", textContent: label }), el("span", { className: "v " + c, textContent: value }), el("span", { className: "s", textContent: sub }));
+    const best = r.months.filter((m) => m.trades).sort((a, b) => b.pnl - a.pnl)[0];
+    $("#stats").replaceChildren(
+      stat(`Realized ${r.year}`, signed(t.pnl), t.pnl_pct == null ? "no sales yet" : `${pct(t.pnl_pct)} on ${money(t.cost)} cost`, cls(t.pnl)),
+      stat("Trades sold", String(t.trades), `${t.wins} won · ${t.losses} lost`),
+      stat("Win rate", winRate, best ? `best month ${MONTHS[Number(best.month.slice(5)) - 1]}` : "—"),
+      stat("Holding now", String(r.open.positions), r.open.positions ? `${money(r.open.cost)} cost` : "no open positions"),
+    );
+
+    // Bar chart: one column per month, bars grow up (profit) or down (loss) from the zero line.
+    const vals = r.months.map((m) => m.pnl);
+    const max = Math.max(0, ...vals), min = Math.min(0, ...vals);
+    const span = max - min || 1;
+    const zero = (max / span) * 100;
+    const chart = $("#chart");
+    chart.style.setProperty("--zero", zero + "%");
+    chart.replaceChildren(...r.months.map((m, i) => {
+      const col = el("button", { type: "button", className: "col" + (openMonth === m.month ? " sel" : ""), tabIndex: -1 });
+      col.title = `${MONTHS[i]}: ${m.trades ? signed(m.pnl) : "no sales"}`;
+      if (m.pnl) {
+        const h = Math.abs(m.pnl) / span * 100;
+        const bar = el("span", { className: "bar " + cls(m.pnl) });
+        bar.style.height = Math.max(h, 1) + "%";
+        bar.style.top = (m.pnl > 0 ? zero - h : zero) + "%";
+        col.append(bar);
+      }
+      col.onclick = () => toggleMonth(m.month);
+      return col;
+    }));
+
+    const body = $("#monthRows");
+    body.textContent = "";
+    const byId = Object.fromEntries(trades.map((x) => [x.id, x]));
+    r.months.forEach((m, i) => {
+      const open = openMonth === m.month;
+      const caret = el("span", { className: "caret", textContent: m.trades ? (open ? "▾" : "▸") : "" });
+      const tr = el("tr", { className: "month" + (m.trades ? "" : " none") },
+        el("td", {}, caret, MONTHS[i]),
+        el("td", { className: "r num", textContent: m.trades || "—" }),
+        el("td", { className: "r num hide-sm", textContent: m.trades ? `${m.wins} / ${m.losses}` : "" }),
+        el("td", { className: "r num hide-sm", textContent: m.trades ? money(m.cost) : "" }),
+        el("td", { className: "r num hide-sm", textContent: m.trades ? money(m.proceeds) : "" }),
+        el("td", { className: "r num " + cls(m.pnl), textContent: m.trades ? signed(m.pnl) : "—" }),
+        el("td", { className: "r num hide-sm " + cls(m.pnl), textContent: m.trades ? pct(m.pnl_pct) : "" }));
+      if (m.trades) {
+        tr.tabIndex = 0;
+        tr.setAttribute("aria-expanded", String(open));
+        tr.onclick = () => toggleMonth(m.month);
+        tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleMonth(m.month); } };
+      }
+      body.append(tr);
+      if (open) {
+        const list = el("ul", { className: "detail-list" });
+        for (const id of m.trade_ids) {
+          const x = byId[id];
+          if (!x) continue;
+          list.append(el("li", {},
+            el("span", {}, el("strong", { className: "num", textContent: x.ticker }), ` ${qtyText(x.quantity)} sh · ${money(x.buy_price)} → ${money(x.sell_price)} · sold ${dateText(x.sell_date)}`),
+            el("span", { className: "num " + cls(x.pnl), textContent: signed(x.pnl) })));
+        }
+        body.append(el("tr", { className: "detail" }, el("td", { colSpan: 7 }, list)));
+      }
+    });
+    body.append(el("tr", { className: "total" },
+      el("td", { textContent: `Total ${r.year}` }),
+      el("td", { className: "r num", textContent: t.trades }),
+      el("td", { className: "r num hide-sm", textContent: `${t.wins} / ${t.losses}` }),
+      el("td", { className: "r num hide-sm", textContent: money(t.cost) }),
+      el("td", { className: "r num hide-sm", textContent: money(r.months.reduce((s, m) => s + m.proceeds, 0)) }),
+      el("td", { className: "r num " + cls(t.pnl), textContent: signed(t.pnl) }),
+      el("td", { className: "r num hide-sm " + cls(t.pnl), textContent: pct(t.pnl_pct) })));
+  }
+
+  function toggleMonth(key) {
+    const m = report.months.find((x) => x.month === key);
+    if (!m || !m.trades) return;
+    openMonth = openMonth === key ? null : key;
+    renderReport();
+  }
+
+  $("#year").onchange = async () => {
+    openMonth = null;
+    try { await loadReport($("#year").value); } catch (e) { if (e.message !== "locked") setMsg($("#reportMsg"), e.message, "err"); }
+  };
+
+  $("#csvBtn").onclick = () => {
+    if (!report) return;
+    const byId = Object.fromEntries(trades.map((x) => [x.id, x]));
+    const q = (s) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+    const lines = [["Month", "Trades", "Won", "Lost", "Cost", "Proceeds", "Profit/Loss", "Return %"].join(",")];
+    for (const m of report.months) lines.push([m.month, m.trades, m.wins, m.losses, m.cost.toFixed(2), m.proceeds.toFixed(2), m.pnl.toFixed(2), m.pnl_pct == null ? "" : m.pnl_pct.toFixed(2)].join(","));
+    const t = report.total;
+    lines.push(["Total", t.trades, t.wins, t.losses, t.cost.toFixed(2), "", t.pnl.toFixed(2), t.pnl_pct == null ? "" : t.pnl_pct.toFixed(2)].join(","));
+    lines.push("", ["Ticker", "Quantity", "Buy price", "Buy date", "Sell price", "Sell date", "Profit/Loss", "Notes"].join(","));
+    for (const m of report.months) for (const id of m.trade_ids) {
+      const x = byId[id]; if (!x) continue;
+      lines.push([x.ticker, x.quantity, x.buy_price, x.buy_date, x.sell_price, x.sell_date, x.pnl.toFixed(2), q(x.notes)].join(","));
+    }
+    const url = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+    const a = el("a", { href: url, download: `trade-log-${report.year}.csv` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  /* ---------- tabs and start ---------- */
+
+  async function showTab(name) {
+    const report_ = name === "report";
+    $("#tabTrades").setAttribute("aria-selected", String(!report_));
+    $("#tabReport").setAttribute("aria-selected", String(report_));
+    $("#viewTrades").hidden = report_;
+    $("#viewReport").hidden = !report_;
+    if (location.hash !== (report_ ? "#report" : "")) history.replaceState(null, "", report_ ? "#report" : location.pathname);
+    if (report_) {
+      try { await loadReport(report ? report.year : null); setMsg($("#reportMsg"), ""); }
+      catch (e) { if (e.message !== "locked") setMsg($("#reportMsg"), e.message, "err"); }
+    }
+  }
+  $("#tabTrades").onclick = () => showTab("trades");
+  $("#tabReport").onclick = () => showTab("report");
+  $(".tabs").addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const next = document.activeElement === $("#tabTrades") ? $("#tabReport") : $("#tabTrades");
+    next.focus(); next.click();
+  });
+
+  async function start() {
+    try {
+      const h = await fetch("/health").then((r) => r.json());
+      authRequired = !!h.auth_required;
+    } catch { /* assume a password is needed */ }
+    if (authRequired && !password) return showLock("");
+    try {
+      await loadTrades();
+      showApp();
+      stopEditing();
+      if (location.hash === "#report") showTab("report");
+    } catch (e) {
+      if (e.message === "locked") return;
+      $("#app").hidden = true; $("#lock").hidden = true; $("#loadErr").hidden = false;
+      $("#loadErrMsg").textContent = e.message;
+    }
+  }
+
+  $("#lockForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    password = $("#pw").value;
+    try {
+      await loadTrades();
+      store.set("tl_pw", password);
+      $("#pw").value = "";
+      showApp(); stopEditing();
+      if (location.hash === "#report") showTab("report");
+    } catch (err) { if (err.message !== "locked") $("#lockMsg").textContent = err.message; }
+  });
+  $("#retry").onclick = start;
+  $("#signOut").onclick = () => { store.del("tl_pw"); password = ""; trades = []; report = null; showLock(""); };
+
+  start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Trade Log - stock trades in DynamoDB with a monthly profit/loss report, at log.ivarsolutions.net
+
+Parameters:
+  AppPassword:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: Password the page asks for once per browser. Leave blank for no password.
+  DomainName:
+    Type: String
+    Default: log.ivarsolutions.net
+  HostedZoneId:
+    Type: String
+    Default: Z06984832CZSILX4TS7JD
+    Description: Route 53 zone for ivarsolutions.net (used for the certificate check and the DNS record).
+
+Resources:
+  TradesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  TradeApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+      DisableExecuteApiEndpoint: true
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref Certificate
+        EndpointConfiguration: REGIONAL
+        Route53:
+          HostedZoneId: !Ref HostedZoneId
+
+  TradeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      Runtime: python3.12
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TradesTable
+          APP_PASSWORD: !Ref AppPassword
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TradesTable
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /
+            Method: GET
+        Any:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /{proxy+}
+            Method: ANY
+
+  TradeFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${TradeFunction}
+      RetentionInDays: 30
+
+Outputs:
+  Url:
+    Value: !Sub https://${DomainName}/
+  TableName:
+    Value: !Ref TradesTable
+  FunctionName:
+    Value: !Ref TradeFunction
