@@ -226,19 +226,21 @@
         <h1>Trade Log</h1>
       </div>
       <div class="tabs" role="tablist" aria-label="Views">
-        <button type="button" role="tab" id="tabTrades" aria-controls="viewTrades" aria-selected="true">Trades</button>
+        <button type="button" role="tab" id="tabStocks" aria-controls="viewTrades" aria-selected="true">Stocks</button>
+        <button type="button" role="tab" id="tabOptions" aria-controls="viewTrades" aria-selected="false">Options</button>
         <button type="button" role="tab" id="tabReport" aria-controls="viewReport" aria-selected="false">Monthly report</button>
       </div>
     </div>
 
     <!-- Trades -->
-    <div id="viewTrades" role="tabpanel" aria-labelledby="tabTrades">
+    <!-- One panel serves both the Stocks and Options tabs; showTab() sets the asset type. -->
+    <div id="viewTrades" role="tabpanel" aria-labelledby="tabStocks">
       <section class="section" aria-labelledby="formTitle">
         <div class="section-head"><h2 id="formTitle">Add a trade</h2></div>
         <div id="editBanner" class="editing-banner" hidden></div>
         <form id="tradeForm" class="trade" novalidate>
           <div class="fieldset-label">Trade</div>
-          <div class="field f-type"><label class="label" for="fAsset">Type</label><select id="fAsset" name="asset"><option value="stock">Stock</option><option value="option">Option</option></select></div>
+          <input type="hidden" name="asset" value="stock">
           <div class="field f-ticker"><label class="label" for="fTicker" id="lTicker">Ticker</label><input id="fTicker" name="ticker" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAPL" maxlength="15" required></div>
           <div class="field f-qty"><label class="label" for="fQty" id="lQty">Shares</label><input id="fQty" name="quantity" inputmode="decimal" placeholder="10" required></div>
           <div class="field f-kind opt" hidden><label class="label" for="fKind">Call or put</label><select id="fKind" name="option_type"><option value="call">Call</option><option value="put">Put</option></select></div>
@@ -263,13 +265,8 @@
 
       <section class="section" aria-labelledby="listTitle">
         <div class="section-head">
-          <h2 id="listTitle">Trades</h2>
+          <h2 id="listTitle">Stock trades</h2>
           <div class="filters">
-            <div class="seg" role="group" aria-label="Type" id="assetSeg">
-              <button type="button" data-v="all" aria-pressed="true">All</button>
-              <button type="button" data-v="stock" aria-pressed="false">Stocks</button>
-              <button type="button" data-v="option" aria-pressed="false">Options</button>
-            </div>
             <div class="seg" role="group" aria-label="Show" id="statusSeg">
               <button type="button" data-v="all" aria-pressed="true">All</button>
               <button type="button" data-v="open" aria-pressed="false">Open</button>
@@ -280,7 +277,7 @@
           </div>
         </div>
         <table id="tradeTable">
-          <thead><tr><th>Ticker</th><th>Opened</th><th>Closed</th><th class="r">Profit / loss</th><th><span class="sr">Actions</span></th></tr></thead>
+          <thead><tr><th>Ticker</th><th id="thOpen">Bought</th><th id="thClose">Sold</th><th class="r">Profit / loss</th><th><span class="sr">Actions</span></th></tr></thead>
           <tbody id="tradeRows"></tbody>
         </table>
         <div class="table-foot"><span id="tradeCount"></span><span id="tradeSum" class="num"></span></div>
@@ -395,7 +392,7 @@
     const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
     const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
     const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
-    store.set(OAUTH_KEY, JSON.stringify({ verifier, state, retried: !!retried, report: location.hash === "#report" }));
+    store.set(OAUTH_KEY, JSON.stringify({ verifier, state, retried: !!retried, hash: location.hash }));
     location.assign(`https://${SIGN_IN.authDomain}/oauth2/authorize?` + new URLSearchParams({
       response_type: "code", client_id: SIGN_IN.clientId, redirect_uri: redirectUri(), scope: "openid email profile",
       identity_provider: "Google", code_challenge: challenge, code_challenge_method: "S256", state, prompt: "select_account",
@@ -408,7 +405,7 @@
     if (!q.has("code") && !q.has("error")) return "";
     const o = readJson(OAUTH_KEY) || {};
     store.del(OAUTH_KEY);
-    history.replaceState(null, "", "/" + (o.report ? "#report" : ""));
+    history.replaceState(null, "", "/" + (["#options", "#report"].includes(o.hash) ? o.hash : ""));
     if (q.get("error")) {
       const desc = q.get("error_description") || q.get("error");
       // The very first Google sign-in can report this while Cognito links the accounts; a second try works.
@@ -436,7 +433,7 @@
   let trades = [];
   let report = null;
   let filter = "all";
-  let assetFilter = "all";
+  let assetFilter = "stock";   // "stock" on the Stocks tab, "option" on the Options tab
   let editingId = null;
   let openMonth = null;
 
@@ -522,12 +519,13 @@
 
   function renderTrades() {
     const q = $("#search").value.trim().toUpperCase();
-    const rows = trades.filter((t) => (filter === "all" || t.status === filter) && (assetFilter === "all" || t.asset === assetFilter) && (!q || t.ticker.includes(q)));
+    const mine = trades.filter((t) => t.asset === assetFilter);
+    const rows = mine.filter((t) => (filter === "all" || t.status === filter) && (!q || t.ticker.includes(q)));
     const body = $("#tradeRows");
     body.textContent = "";
     if (!rows.length) {
       body.append(el("tr", {}, el("td", { colSpan: 5, className: "empty", textContent:
-        trades.length ? "No trades match this filter." : "No trades yet. Add your first one above." })));
+        mine.length ? "No trades match this filter." : `No ${assetFilter === "option" ? "option" : "stock"} trades yet. Add your first one above.` })));
     }
     for (const t of rows) {
       const opt = isOpt(t), open = t.status === "open";
@@ -645,7 +643,8 @@
     editingId = null;
     form.reset();
     form.elements.buy_date.value = today();
-    $("#formTitle").textContent = "Add a trade";
+    form.elements.asset.value = assetFilter;
+    $("#formTitle").textContent = assetFilter === "option" ? "Add an option trade" : "Add a stock trade";
     $("#editBanner").hidden = true;
     $("#saveBtn").textContent = "Add trade";
     $("#cancelBtn").hidden = true;
@@ -681,16 +680,13 @@
     } finally { btn.disabled = false; }
   });
 
-  for (const [id, set] of [["#statusSeg", (v) => { filter = v; }], ["#assetSeg", (v) => { assetFilter = v; }]]) {
-    const btns = document.querySelectorAll(`${id} button`);
-    btns.forEach((b) => {
-      b.onclick = () => {
-        set(b.dataset.v);
-        btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-        renderTrades();
-      };
-    });
-  }
+  document.querySelectorAll("#statusSeg button").forEach((b, _, btns) => {
+    b.onclick = () => {
+      filter = b.dataset.v;
+      btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderTrades();
+    };
+  });
   $("#search").addEventListener("input", renderTrades);
 
   /* ---------- report ---------- */
@@ -818,23 +814,47 @@
 
   /* ---------- tabs and start ---------- */
 
+  // Tabs: Stocks and Options share one panel (form + list for that asset type);
+  // the Monthly report covers both. The tab lives in the URL hash: "", "#options" or "#report".
+  const TABS = { stocks: "#tabStocks", options: "#tabOptions", report: "#tabReport" };
+  const tabFromHash = () => ({ "#options": "options", "#report": "report" })[location.hash] || "stocks";
+
+  // Point the shared panel at stocks or options.
+  function useAsset(asset) {
+    if (assetFilter === asset) return;
+    assetFilter = asset;
+    const opt = asset === "option";
+    $("#viewTrades").setAttribute("aria-labelledby", opt ? "tabOptions" : "tabStocks");
+    $("#listTitle").textContent = opt ? "Option trades" : "Stock trades";
+    $("#thOpen").textContent = opt ? "Opened" : "Bought";
+    $("#thClose").textContent = opt ? "Closed" : "Sold";
+    $("#search").value = "";
+    setMsg($("#formMsg"), "");
+    setMsg($("#listMsg"), "");
+    stopEditing();
+    renderTrades();
+  }
+
   async function showTab(name) {
-    const report_ = name === "report";
-    $("#tabTrades").setAttribute("aria-selected", String(!report_));
-    $("#tabReport").setAttribute("aria-selected", String(report_));
-    $("#viewTrades").hidden = report_;
-    $("#viewReport").hidden = !report_;
-    if (location.hash !== (report_ ? "#report" : "")) history.replaceState(null, "", report_ ? "#report" : location.pathname);
-    if (report_) {
+    const isReport = name === "report";
+    for (const [n, id] of Object.entries(TABS)) $(id).setAttribute("aria-selected", String(n === name));
+    $("#viewTrades").hidden = isReport;
+    $("#viewReport").hidden = !isReport;
+    const hash = name === "stocks" ? "" : "#" + name;
+    if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname);
+    if (isReport) {
       try { await loadReport(report ? report.year : null); setMsg($("#reportMsg"), ""); }
       catch (e) { if (e.message !== "locked") setMsg($("#reportMsg"), e.message, "err"); }
+    } else {
+      useAsset(name === "options" ? "option" : "stock");
     }
   }
-  $("#tabTrades").onclick = () => showTab("trades");
-  $("#tabReport").onclick = () => showTab("report");
+  for (const [n, id] of Object.entries(TABS)) $(id).onclick = () => showTab(n);
   $(".tabs").addEventListener("keydown", (e) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    const next = document.activeElement === $("#tabTrades") ? $("#tabReport") : $("#tabTrades");
+    const ids = Object.values(TABS);
+    const i = ids.findIndex((id) => $(id) === document.activeElement);
+    const next = $(ids[(i + (e.key === "ArrowRight" ? 1 : ids.length - 1)) % ids.length]);
     next.focus(); next.click();
   });
 
@@ -847,7 +867,7 @@
       await loadTrades();
       showApp();
       stopEditing();
-      if (location.hash === "#report") showTab("report");
+      showTab(tabFromHash());
     } catch (e) {
       if (e.message === "locked") return;
       $("#app").hidden = true; $("#lock").hidden = true; $("#loadErr").hidden = false;

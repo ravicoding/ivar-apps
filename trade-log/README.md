@@ -5,7 +5,8 @@ opening price and date, closing price and date, notes; for options also call/put
 and expiration) in DynamoDB and see realized profit/loss by month.
 
 - `src/app.py` – one Lambda that serves the page (`GET /`) and the JSON API (`/api/*`)
-- `src/index.html` – the page (ivarsolutions.net masthead, Trades and Monthly report tabs)
+- `src/index.html` – the page (ivarsolutions.net masthead; Stocks, Options and Monthly report tabs —
+  each trade tab has its own form and list, and the report combines both)
 - `template.yaml` – DynamoDB table (point-in-time backups, kept if the stack is deleted), Lambda,
   HTTP API, ACM certificate and the `log.ivarsolutions.net` domain + Route 53 record
 - Sign-in: Google, through the Daylog Cognito user pool (the stack adds its own app client). API
