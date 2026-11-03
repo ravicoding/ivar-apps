@@ -245,6 +245,12 @@
     .nb-text { font-size: 1.45rem; }
   }
   @media (prefers-reduced-motion: reduce) { .nb-page.fwd, .nb-page.back { animation: none; } }
+  /* Phones: no previous/next buttons. The date picker changes the day; swipe turns notebook pages. */
+  @media (max-width: 600px) {
+    .date-nav { grid-template-columns: 1fr; }
+    #prevDay, #nextDay, .nb-btn { display: none; }
+    .nb-nav { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -878,12 +884,23 @@ async function pushOne(e) {
   const cur = await dbGet(e.id);
   if (cur && cur.updatedAt === startedAt && res.entry) await adoptRemote(res.entry, true);   // someone else's newer version wins
 }
+// The server's sync feed is ordered by syncedAt, the time the server stored each version. Earlier
+// versions ordered by the device's updatedAt, so an entry another device uploaded late could sit
+// behind this device's "since" mark forever. Feed version 2 re-downloads everything once to recover.
+const FEED_VERSION = 2;
+const FEED_OVERLAP_MS = 2 * 60 * 1000;   // re-ask for the last 2 minutes; adoptRemote ignores repeats
 async function pull() {
+  if (syncState().feed !== FEED_VERSION) patchSyncState({ since: '', feed: FEED_VERSION });
   const since = syncState().since || '';
+  const ask = since ? new Date(Math.max(0, Date.parse(since) - FEED_OVERLAP_MS)).toISOString() : '';
   let cursor = null, maxU = since, changed = 0;
   do {
-    const res = await api('GET', '/entries?since=' + encodeURIComponent(since) + '&limit=100' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
-    for (const r of res.entries || []) { if (await adoptRemote(r)) changed++; if (r.updatedAt > maxU) maxU = r.updatedAt; }
+    const res = await api('GET', '/entries?since=' + encodeURIComponent(ask) + '&limit=100' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : ''));
+    for (const r of res.entries || []) {
+      if (await adoptRemote(r)) changed++;
+      const mark = r.syncedAt || r.updatedAt;
+      if (mark > maxU) maxU = mark;
+    }
     cursor = res.nextCursor;
   } while (cursor);
   patchSyncState({ since: maxU });
