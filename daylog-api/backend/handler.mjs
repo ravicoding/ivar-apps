@@ -121,10 +121,15 @@ function decodeCursor(cursor, pk) {
 
 /* ---------- Shaping responses ---------- */
 
+// syncedAt is when the server stored this version (the GSI2 sort key). Items written before
+// syncedAt existed carry it only inside GSI2SK, so read it from there.
+const ISO_PREFIX = /^\d{4}-\d\d-\d\dT[^#]+/;
+const syncedAtOf = item => item.syncedAt ?? (ISO_PREFIX.exec(item.GSI2SK ?? '') || [])[0] ?? item.updatedAt;
+
 function publicEntry(item) {
   if (!item) return null;
   const { id, date, text, images, createdAt, updatedAt, deletedAt } = item;
-  return { id, date, text: text ?? '', images: images ?? [], createdAt, updatedAt, ...(deletedAt ? { deletedAt } : {}) };
+  return { id, date, text: text ?? '', images: images ?? [], createdAt, updatedAt, syncedAt: syncedAtOf(item), ...(deletedAt ? { deletedAt } : {}) };
 }
 
 async function withUrls(entry) {
@@ -152,12 +157,16 @@ async function putEntry(sub, event) {
   // A device with a wrong clock must not be able to win every future conflict.
   if (Date.parse(updatedAt) > nowMs + CLOCK_SKEW_MS) updatedAt = new Date(nowMs + CLOCK_SKEW_MS).toISOString();
 
+  // The sync feed (GSI2) is ordered by when the server stored the entry, not by the device's
+  // updatedAt. A device that uploads an older edit late would otherwise land behind other devices'
+  // "since" mark and never reach them. updatedAt still decides conflicts (last write wins).
+  const syncedAt = new Date(nowMs).toISOString();
   const pk = userPk(sub);
   const item = {
     PK: pk, SK: `ENTRY#${id}`,
     GSI1PK: pk, GSI1SK: `DATE#${date}#${createdAt}#${id}`,
-    GSI2PK: pk, GSI2SK: `${updatedAt}#${id}`,
-    entityType: 'ENTRY', id, date, text, images, createdAt, updatedAt
+    GSI2PK: pk, GSI2SK: `${syncedAt}#${id}`,
+    entityType: 'ENTRY', id, date, text, images, createdAt, updatedAt, syncedAt
   };
 
   try {
@@ -221,7 +230,7 @@ async function deleteEntry(sub, event) {
     await ddb.send(new UpdateCommand({
       TableName: table(),
       Key: { PK: userPk(sub), SK: `ENTRY#${id}` },
-      UpdateExpression: 'SET deletedAt = :n, updatedAt = :n, GSI2SK = :g, #ttl = :t',
+      UpdateExpression: 'SET deletedAt = :n, updatedAt = :n, syncedAt = :n, GSI2SK = :g, #ttl = :t',
       ConditionExpression: 'attribute_exists(PK)',
       ExpressionAttributeNames: { '#ttl': 'ttl' },
       ExpressionAttributeValues: { ':n': now, ':g': `${now}#${id}`, ':t': Math.floor(Date.now() / 1000) + TOMBSTONE_TTL_SECONDS }

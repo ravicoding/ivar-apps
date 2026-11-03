@@ -135,6 +135,24 @@ test('returns the server copy when it is newer (last write wins)', async () => {
   assert.equal(r.body.entry.PK, undefined);
 });
 
+test('a late upload of an old edit still sorts as new in the sync feed', async () => {
+  ddbMock.on(PutCommand).resolves({});
+  const before = new Date().toISOString();
+  const r = await put({ date: '2026-10-10', text: 'written offline', updatedAt: '2026-10-10T14:00:00Z' });
+  const item = lastInput(PutCommand).Item;
+  assert.equal(item.updatedAt, '2026-10-10T14:00:00.000Z');          // conflicts still use the device time
+  assert.ok(item.syncedAt >= before);                                 // the feed uses the server's time
+  assert.equal(item.GSI2SK, `${item.syncedAt}#${ENTRY_ID}`);
+  assert.equal(r.body.entry.syncedAt, item.syncedAt);
+});
+
+test('entries stored before syncedAt existed report it from the index key', async () => {
+  ddbMock.on(QueryCommand).resolves({ Items: [storedItem({ GSI2SK: `2026-10-11T09:00:00.000Z#${ENTRY_ID}` }), storedItem({ id: 'entry-0002' })] });
+  const r = await call(ev('GET /entries', { query: { since: '' } }));
+  assert.equal(r.body.entries[0].syncedAt, '2026-10-11T09:00:00.000Z');
+  assert.equal(r.body.entries[1].syncedAt, '2026-10-10T13:00:00.000Z');  // no usable key: fall back to updatedAt
+});
+
 test('clamps an updatedAt far in the future', async () => {
   ddbMock.on(PutCommand).resolves({});
   const before = Date.now();
