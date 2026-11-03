@@ -1,13 +1,22 @@
 """
-Trade Log: record stock trades (ticker, quantity, buy price/date, sell price/date) in DynamoDB
-and report realized profit/loss by month.
+Trade Log: record stock and option trades in DynamoDB and report realized profit/loss by month.
+
+A trade has an opening leg (buy_price/buy_date) and an optional closing leg (sell_price/sell_date).
+For stocks and long options the opening leg is a purchase. For a short option (sold to open) the
+opening leg is the sale and the closing leg is the buy-back. Options also store option_type
+(call/put), side (long/short), strike and expiration; prices are per share and one contract is
+100 shares. Trades saved before options existed have no asset field and are stocks.
 
 One Lambda behind an HTTP API serves both the page (GET /) and the JSON API (/api/*), so the
 page and API share an origin and need no CORS.
 
-Routes (all /api/* need the x-app-password header when APP_PASSWORD is set):
-  GET    /                       the app page
-  GET    /health                 {"ok": true, "auth_required": bool}
+Sign-in is Google through a Cognito user pool. API Gateway checks the ID token on every /api/*
+route (JWT authorizer); this code then allows only the emails in ALLOWED_EMAILS.
+
+Routes:
+  GET    /                       the app page (public; it shows the Google sign-in)
+  GET    /health                 {"ok": true}
+  GET    /api/me                 the signed-in email
   GET    /api/trades             every trade, newest first
   POST   /api/trades             add a trade
   PUT    /api/trades/{id}        replace a trade's fields
@@ -17,7 +26,6 @@ Routes (all /api/* need the x-app-password header when APP_PASSWORD is set):
 
 import base64
 import datetime as dt
-import hmac
 import json
 import os
 import re
@@ -27,13 +35,18 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import boto3
 
 TABLE = boto3.resource("dynamodb").Table(os.environ.get("TABLE_NAME", "trade-log"))
-APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
+ALLOWED_EMAILS = {e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
+CLIENT_ID = os.environ.get("CLIENT_ID", "")
+AUTH_DOMAIN = os.environ.get("AUTH_DOMAIN", "")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 TICKER_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-^=]{0,14}$")
 ID_RE = re.compile(r"^[0-9a-f]{12}$")
 MAX_NOTES = 500
 CENT = Decimal("0.01")
+MULTIPLIER = {"stock": Decimal(1), "option": Decimal(100)}  # shares per unit of quantity
+OPTION_TYPES = ("call", "put")
+SIDES = ("long", "short")
 
 
 # ------------------------------------------------------------------ helpers
@@ -71,10 +84,13 @@ def error(status, message):
     return respond(status, {"error": message})
 
 
-def authorized(headers):
-    if not APP_PASSWORD:
-        return True
-    return hmac.compare_digest(headers.get("x-app-password", "").encode(), APP_PASSWORD.encode())
+def signed_in_email(event):
+    """Email from the ID token API Gateway already verified, or None. Fails closed if no authorizer ran."""
+    claims = ((event.get("requestContext") or {}).get("authorizer") or {}).get("jwt", {}).get("claims") or {}
+    email = str(claims.get("email", "")).lower()
+    if not email or claims.get("token_use") != "id" or str(claims.get("email_verified")).lower() != "true":
+        return None
+    return email
 
 
 def read_json(event):
@@ -94,7 +110,7 @@ class Invalid(ValueError):
     pass
 
 
-def number(value, label, required=True):
+def number(value, label, required=True, allow_zero=False):
     if value is None or str(value).strip() == "":
         if required:
             raise Invalid(f"Enter the {label}.")
@@ -103,8 +119,8 @@ def number(value, label, required=True):
         n = Decimal(str(value).strip().replace(",", "").lstrip("$"))
     except InvalidOperation:
         raise Invalid(f"The {label} must be a number, like 12.50.")
-    if not n.is_finite() or n <= 0:
-        raise Invalid(f"The {label} must be above zero.")
+    if not n.is_finite() or n < 0 or (n == 0 and not allow_zero):
+        raise Invalid(f"The {label} can't be negative." if allow_zero else f"The {label} must be above zero.")
     if n > Decimal("1e9"):
         raise Invalid(f"The {label} is too large.")
     return n.quantize(Decimal("0.000001")).normalize()
@@ -126,23 +142,60 @@ def date(value, label, required=True):
     return d.isoformat()
 
 
+def expiration_date(value):
+    """An option's expiration: unlike trade dates it may be in the future."""
+    if value is None or str(value).strip() == "":
+        raise Invalid("Enter the expiration date.")
+    try:
+        d = dt.date.fromisoformat(str(value).strip())
+    except ValueError:
+        raise Invalid("The expiration must be a date like 2026-12-18.")
+    if not 1970 <= d.year <= 2100:
+        raise Invalid("The expiration date isn't valid.")
+    return d.isoformat()
+
+
+def choice(value, allowed, default, message):
+    v = str(value or default).strip().lower()
+    if v not in allowed:
+        raise Invalid(message)
+    return v
+
+
 def trade_fields(body):
     """Validate a trade from the page. Returns the stored fields (Decimals and ISO dates)."""
+    asset = choice(body.get("asset"), MULTIPLIER, "stock", "The type must be stock or option.")
+    opt = asset == "option"
     ticker = str(body.get("ticker", "")).strip().upper()
     if not TICKER_RE.match(ticker):
         raise Invalid("Enter a ticker symbol, like AAPL or BRK.B.")
+    open_word, close_word = ("opening", "closing") if opt else ("buy", "sell")
     fields = {
+        "asset": asset,
         "ticker": ticker,
-        "quantity": number(body.get("quantity"), "quantity"),
-        "buy_price": number(body.get("buy_price"), "buy price"),
-        "buy_date": date(body.get("buy_date"), "buy date"),
-        "sell_price": number(body.get("sell_price"), "sell price", required=False),
-        "sell_date": date(body.get("sell_date"), "sell date", required=False),
+        "quantity": number(body.get("quantity"), "number of contracts" if opt else "quantity"),
+        "buy_price": number(body.get("buy_price"), f"{open_word} price"),
+        "buy_date": date(body.get("buy_date"), f"{open_word} date"),
+        # An option that expires worthless closes at $0.
+        "sell_price": number(body.get("sell_price"), f"{close_word} price", required=False, allow_zero=opt),
+        "sell_date": date(body.get("sell_date"), f"{close_word} date", required=False),
+        "option_type": None, "side": None, "strike": None, "expiration": None,
     }
     if (fields["sell_price"] is None) != (fields["sell_date"] is None):
+        if opt:
+            raise Invalid("Enter both the closing price and the closing date, or leave both blank for a position that's still open.")
         raise Invalid("Enter both the sell price and the sell date, or leave both blank for a position you still hold.")
     if fields["sell_date"] and fields["sell_date"] < fields["buy_date"]:
-        raise Invalid("The sell date can't be before the buy date.")
+        raise Invalid(f"The {close_word} date can't be before the {open_word} date.")
+    if opt:
+        fields["option_type"] = choice(body.get("option_type"), OPTION_TYPES, "", "Choose call or put.")
+        fields["side"] = choice(body.get("side"), SIDES, "long", "The position must be long or short.")
+        fields["strike"] = number(body.get("strike"), "strike price")
+        fields["expiration"] = expiration_date(body.get("expiration"))
+        if fields["buy_date"] > fields["expiration"]:
+            raise Invalid("The opening date can't be after the expiration date.")
+        if fields["sell_date"] and fields["sell_date"] > fields["expiration"]:
+            raise Invalid("The closing date can't be after the expiration date.")
     notes = str(body.get("notes") or "").strip()
     if len(notes) > MAX_NOTES:
         raise Invalid(f"Notes can be at most {MAX_NOTES} characters.")
@@ -150,16 +203,31 @@ def trade_fields(body):
     return fields
 
 
+def amounts(t):
+    """(cost, proceeds, pnl) as Decimals; proceeds and pnl are None while the trade is open.
+
+    cost is the opening leg's value: what was paid, or for a short option the premium received.
+    proceeds = cost + pnl, so the report's columns always add up and return = pnl / cost.
+    """
+    shares = Decimal(str(t["quantity"])) * MULTIPLIER[t.get("asset") or "stock"]
+    cost = shares * Decimal(str(t["buy_price"]))
+    if t.get("sell_price") is None:
+        return cost, None, None
+    closing = shares * Decimal(str(t["sell_price"]))
+    pnl = cost - closing if t.get("side") == "short" else closing - cost
+    return cost, cost + pnl, pnl
+
+
 def computed(item):
     """Add cost, proceeds and profit/loss to a stored trade, for the page."""
     t = plain(item)
-    qty, buy = Decimal(str(item["quantity"])), Decimal(str(item["buy_price"]))
-    t["cost"] = money(qty * buy)
-    if item.get("sell_price") is not None:
-        proceeds = qty * Decimal(str(item["sell_price"]))
+    t.setdefault("asset", "stock")
+    cost, proceeds, pnl = amounts(item)
+    t["cost"] = money(cost)
+    if pnl is not None:
         t["proceeds"] = money(proceeds)
-        t["pnl"] = money(proceeds - qty * buy)
-        t["pnl_pct"] = float((proceeds / (qty * buy) - 1) * 100) if buy else 0.0
+        t["pnl"] = money(pnl)
+        t["pnl_pct"] = float(pnl / cost * 100) if cost else 0.0
         t["status"] = "closed"
     else:
         t["status"] = "open"
@@ -202,9 +270,10 @@ def monthly_report(trades, year=None):
     for m in range(1, 13):
         key = f"{year}-{m:02d}"
         rows = [t for t in closed if t["sell_date"][:7] == key]
-        cost = sum((Decimal(str(t["quantity"])) * Decimal(str(t["buy_price"])) for t in rows), Decimal(0))
-        proceeds = sum((Decimal(str(t["quantity"])) * Decimal(str(t["sell_price"])) for t in rows), Decimal(0))
-        pnls = [Decimal(str(t["quantity"])) * (Decimal(str(t["sell_price"])) - Decimal(str(t["buy_price"]))) for t in rows]
+        sums = [amounts(t) for t in rows]
+        cost = sum((a[0] for a in sums), Decimal(0))
+        proceeds = sum((a[1] for a in sums), Decimal(0))
+        pnls = [a[2] for a in sums]
         months.append({
             "month": key,
             "trades": len(rows),
@@ -233,7 +302,8 @@ def monthly_report(trades, year=None):
         },
         "open": {
             "positions": len(open_rows),
-            "cost": money(sum((Decimal(str(t["quantity"])) * Decimal(str(t["buy_price"])) for t in open_rows), Decimal(0))),
+            # Money paid into positions still held; premium from open short options isn't a cost.
+            "cost": money(sum((amounts(t)[0] for t in open_rows if t.get("side") != "short"), Decimal(0))),
         },
     }
 
@@ -242,7 +312,9 @@ def monthly_report(trades, year=None):
 
 def page():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
-        return respond(200, f.read(), "text/html; charset=utf-8")
+        html = f.read()
+    config = json.dumps({"clientId": CLIENT_ID, "authDomain": AUTH_DOMAIN}).replace("<", "\\u003c")
+    return respond(200, html.replace("/*SIGN_IN_CONFIG*/{}", config), "text/html; charset=utf-8")
 
 
 def create_trade(event):
@@ -278,16 +350,20 @@ def update_trade(trade_id, event):
 def handle(event):
     method = event["requestContext"]["http"]["method"]
     path = event.get("rawPath", "/")
-    headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
 
     if method == "GET" and path in ("/", "/index.html"):
         return page()
     if method == "GET" and path == "/health":
-        return respond(200, {"ok": True, "auth_required": bool(APP_PASSWORD)})
+        return respond(200, {"ok": True})
     if not path.startswith("/api/"):
         return error(404, "Not found.")
-    if not authorized(headers):
-        return error(401, "Wrong password.")
+    email = signed_in_email(event)
+    if not email:
+        return error(401, "Sign in with Google.")
+    if email not in ALLOWED_EMAILS:
+        return error(403, f"{email} isn't allowed to use Trade Log.")
+    if method == "GET" and path == "/api/me":
+        return respond(200, {"email": email})
 
     if path == "/api/trades":
         if method == "GET":

@@ -6,7 +6,9 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
-os.environ["APP_PASSWORD"] = "secret-pass"
+os.environ["ALLOWED_EMAILS"] = "Owner@Example.com, second@example.com"
+os.environ["CLIENT_ID"] = "client123"
+os.environ["AUTH_DOMAIN"] = "auth.example.com"
 
 import app  # noqa: E402
 
@@ -29,9 +31,14 @@ class FakeTable:
         self.items.pop(Key["id"], None)
 
 
-def call(table, method, path, body=None, password="secret-pass", query=None):
-    event = {"requestContext": {"http": {"method": method}}, "rawPath": path,
-             "headers": {"X-App-Password": password} if password else {},
+OWNER = {"email": "owner@example.com", "email_verified": "true", "token_use": "id"}
+
+
+def call(table, method, path, body=None, claims=OWNER, query=None):
+    ctx = {"http": {"method": method}}
+    if claims is not None:
+        ctx["authorizer"] = {"jwt": {"claims": claims}}
+    event = {"requestContext": ctx, "rawPath": path, "headers": {},
              "body": json.dumps(body) if body is not None else None,
              "queryStringParameters": query}
     with mock.patch.object(app, "TABLE", table):
@@ -103,6 +110,85 @@ class TradeTests(unittest.TestCase):
         self.assertEqual([x["ticker"] for x in body["trades"]], ["MSFT", "AAPL", "NVDA"])
 
 
+CALL = {"asset": "option", "ticker": "aapl", "option_type": "Call", "side": "long", "strike": "200",
+        "expiration": "2026-03-20", "quantity": "2", "buy_price": "3.10", "buy_date": "2026-01-05",
+        "sell_price": "5.00", "sell_date": "2026-02-10"}
+
+
+class OptionTests(unittest.TestCase):
+    def test_long_call_uses_100_share_multiplier(self):
+        t = FakeTable()
+        status, body = call(t, "POST", "/api/trades", CALL)
+        self.assertEqual(status, 201)
+        self.assertEqual((body["asset"], body["option_type"], body["side"], body["strike"]), ("option", "call", "long", 200))
+        self.assertEqual((body["cost"], body["proceeds"], body["pnl"]), (620.0, 1000.0, 380.0))  # 2 × 100 × (5.00 − 3.10)
+
+    def test_short_put_expired_worthless(self):
+        status, body = call(FakeTable(), "POST", "/api/trades",
+                            {**CALL, "option_type": "put", "side": "short", "buy_price": "2.50", "sell_price": "0", "sell_date": "2026-03-20", "quantity": "1"})
+        self.assertEqual(status, 201)
+        self.assertEqual((body["cost"], body["pnl"], body["pnl_pct"], body["status"]), (250.0, 250.0, 100.0, "closed"))
+
+    def test_short_call_bought_back_at_a_loss(self):
+        _, body = call(FakeTable(), "POST", "/api/trades", {**CALL, "side": "short", "buy_price": "1.00", "sell_price": "2.50", "quantity": "1"})
+        self.assertEqual((body["pnl"], body["pnl_pct"]), (-150.0, -150.0))
+
+    def test_open_option_may_expire_in_future(self):
+        status, body = call(FakeTable(), "POST", "/api/trades", {**CALL, "expiration": "2099-01-15", "sell_price": "", "sell_date": ""})
+        self.assertEqual((status, body["status"], body["cost"]), (201, "open", 620.0))
+
+    def test_option_validation(self):
+        cases = [
+            ({"option_type": ""}, "call or put"),
+            ({"side": "sideways"}, "long or short"),
+            ({"strike": ""}, "strike"),
+            ({"expiration": ""}, "expiration"),
+            ({"expiration": "2026-01-01"}, "opening date can't be after"),
+            ({"sell_date": "2026-04-01"}, "closing date can't be after"),
+            ({"sell_price": "-1"}, "negative"),
+            ({"sell_date": ""}, "closing price and the closing date"),
+            ({"asset": "crypto"}, "stock or option"),
+        ]
+        for change, words in cases:
+            status, body = call(FakeTable(), "POST", "/api/trades", {**CALL, **change})
+            self.assertEqual(status, 400, change)
+            self.assertIn(words, body["error"], change)
+
+    def test_stock_sell_price_still_must_be_above_zero(self):
+        status, body = call(FakeTable(), "POST", "/api/trades", {**TRADE, "sell_price": "0"})
+        self.assertEqual(status, 400)
+        self.assertIn("above zero", body["error"])
+
+    def test_switching_option_to_stock_drops_option_fields(self):
+        t = FakeTable()
+        _, created = call(t, "POST", "/api/trades", CALL)
+        call(t, "PUT", f"/api/trades/{created['id']}", {**CALL, "asset": "stock", "buy_price": "150", "sell_price": "160"})
+        stored = t.items[created["id"]]
+        self.assertEqual(stored["asset"], "stock")
+        self.assertNotIn("strike", stored)
+        self.assertNotIn("expiration", stored)
+
+    def test_old_trades_without_asset_are_stocks(self):
+        old = {"id": "0123456789ab", "ticker": "MSFT", "quantity": 1, "buy_price": 100, "buy_date": "2026-01-02",
+               "sell_price": 110, "sell_date": "2026-02-02"}
+        _, body = call(FakeTable([old]), "GET", "/api/trades")
+        self.assertEqual((body["trades"][0]["asset"], body["trades"][0]["pnl"]), ("stock", 10.0))
+
+    def test_report_mixes_stocks_and_options(self):
+        t = FakeTable()
+        call(t, "POST", "/api/trades", TRADE)                                   # Feb stock +105
+        call(t, "POST", "/api/trades", CALL)                                    # Feb long call +380
+        call(t, "POST", "/api/trades", {**CALL, "side": "short", "buy_price": "1.00", "sell_price": "2.50", "quantity": "1"})  # Feb -150
+        call(t, "POST", "/api/trades", {**CALL, "side": "short", "sell_price": "", "sell_date": ""})  # open short: no cost
+        call(t, "POST", "/api/trades", {**CALL, "sell_price": "", "sell_date": ""})                   # open long: 620 cost
+        _, r = call(t, "GET", "/api/report", query={"year": "2026"})
+        feb = r["months"][1]
+        self.assertEqual((feb["trades"], feb["wins"], feb["losses"], feb["pnl"]), (3, 2, 1, 335.0))
+        self.assertEqual(feb["cost"], 1502.5 + 620 + 100)
+        self.assertAlmostEqual(feb["proceeds"] - feb["cost"], feb["pnl"])
+        self.assertEqual((r["open"]["positions"], r["open"]["cost"]), (2, 620.0))
+
+
 class ReportTests(unittest.TestCase):
     def test_monthly_totals(self):
         t = FakeTable()
@@ -131,19 +217,25 @@ class ReportTests(unittest.TestCase):
 
 
 class HttpTests(unittest.TestCase):
-    def test_password_required(self):
-        self.assertEqual(call(FakeTable(), "GET", "/api/trades", password="")[0], 401)
-        self.assertEqual(call(FakeTable(), "GET", "/api/trades", password="wrong")[0], 401)
+    def test_sign_in_required(self):
+        self.assertEqual(call(FakeTable(), "GET", "/api/trades", claims=None)[0], 401)
+        self.assertEqual(call(FakeTable(), "GET", "/api/trades", claims={**OWNER, "email_verified": "false"})[0], 401)
+        self.assertEqual(call(FakeTable(), "GET", "/api/trades", claims={**OWNER, "token_use": "access"})[0], 401)
+
+    def test_only_allowed_emails(self):
+        status, body = call(FakeTable(), "GET", "/api/trades", claims={**OWNER, "email": "someone@else.com"})
+        self.assertEqual(status, 403)
+        self.assertIn("someone@else.com", body["error"])
+        self.assertEqual(call(FakeTable(), "GET", "/api/trades", claims={**OWNER, "email": "SECOND@example.com"})[0], 200)
+        self.assertEqual(call(FakeTable(), "GET", "/api/me")[1], {"email": "owner@example.com"})
 
     def test_page_and_health_are_public(self):
-        status, html = call(FakeTable(), "GET", "/", password="")
+        status, html = call(FakeTable(), "GET", "/", claims=None)
         self.assertEqual(status, 200)
         self.assertIn("<title>", html)
-        self.assertTrue(call(FakeTable(), "GET", "/health", password="")[1]["auth_required"])
-
-    def test_no_password_mode(self):
-        with mock.patch.object(app, "APP_PASSWORD", ""):
-            self.assertEqual(call(FakeTable(), "GET", "/api/trades", password="")[0], 200)
+        self.assertIn('{"clientId": "client123", "authDomain": "auth.example.com"}', html)
+        self.assertNotIn("SIGN_IN_CONFIG", html)
+        self.assertEqual(call(FakeTable(), "GET", "/health", claims=None), (200, {"ok": True}))
 
     def test_errors_are_hidden(self):
         broken = mock.Mock()
@@ -154,7 +246,8 @@ class HttpTests(unittest.TestCase):
 
     def test_bad_json(self):
         event = {"requestContext": {"http": {"method": "POST"}}, "rawPath": "/api/trades",
-                 "headers": {"x-app-password": "secret-pass"}, "body": "[1,2"}
+                 "headers": {}, "body": "[1,2"}
+        event["requestContext"]["authorizer"] = {"jwt": {"claims": OWNER}}
         with mock.patch.object(app, "TABLE", FakeTable()):
             self.assertEqual(app.handler(event, None)["statusCode"], 400)
 

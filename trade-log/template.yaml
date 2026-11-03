@@ -3,11 +3,17 @@ Transform: AWS::Serverless-2016-10-31
 Description: Trade Log - stock trades in DynamoDB with a monthly profit/loss report, at log.ivarsolutions.net
 
 Parameters:
-  AppPassword:
+  AllowedEmails:
     Type: String
-    NoEcho: true
-    Default: ""
-    Description: Password the page asks for once per browser. Leave blank for no password.
+    Description: Comma-separated Google account emails allowed to use the app.
+  UserPoolId:
+    Type: String
+    Default: us-east-1_jwvM6Q2KJ
+    Description: Cognito user pool with the Google sign-in provider (shared with Daylog).
+  AuthDomain:
+    Type: String
+    Default: daylog-ravi-160275.auth.us-east-1.amazoncognito.com
+    Description: Hosted sign-in domain of that user pool.
   DomainName:
     Type: String
     Default: log.ivarsolutions.net
@@ -43,9 +49,41 @@ Resources:
         - DomainName: !Ref DomainName
           HostedZoneId: !Ref HostedZoneId
 
+  # Google sign-in through the shared Cognito pool. Public client (no secret): the page uses PKCE.
+  SignInClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPoolId
+      ClientName: trade-log
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      SupportedIdentityProviders: [Google]
+      CallbackURLs: [!Sub "https://${DomainName}/"]
+      LogoutURLs: [!Sub "https://${DomainName}/"]
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        IdToken: minutes
+        AccessToken: minutes
+        RefreshToken: days
+
   TradeApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      Auth:
+        Authorizers:
+          GoogleSignIn:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}
+              audience:
+                - !Ref SignInClient
       DefaultRouteSettings:
         ThrottlingBurstLimit: 20
         ThrottlingRateLimit: 10
@@ -69,7 +107,9 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Ref TradesTable
-          APP_PASSWORD: !Ref AppPassword
+          ALLOWED_EMAILS: !Ref AllowedEmails
+          CLIENT_ID: !Ref SignInClient
+          AUTH_DOMAIN: !Ref AuthDomain
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref TradesTable
@@ -80,12 +120,20 @@ Resources:
             ApiId: !Ref TradeApi
             Path: /
             Method: GET
-        Any:
+        Health:
           Type: HttpApi
           Properties:
             ApiId: !Ref TradeApi
-            Path: /{proxy+}
+            Path: /health
+            Method: GET
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /api/{proxy+}
             Method: ANY
+            Auth:
+              Authorizer: GoogleSignIn
 
   TradeFunctionLogs:
     Type: AWS::Logs::LogGroup

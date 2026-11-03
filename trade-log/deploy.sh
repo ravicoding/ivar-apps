@@ -3,8 +3,8 @@
 # No extra Python packages are needed: boto3 is part of the Lambda runtime.
 #
 # Usage:  ./deploy.sh <deploy-bucket> [stack-name] [Param=Value ...]
-# First deploy:  ./deploy.sh my-bucket trade-log AppPassword=...
-# Later deploys keep the existing parameter values (including the password): ./deploy.sh my-bucket
+# First deploy:  ./deploy.sh my-bucket trade-log AllowedEmails=you@gmail.com
+# Later deploys keep the existing parameter values: ./deploy.sh my-bucket
 set -euo pipefail
 
 BUCKET="${1:?Usage: ./deploy.sh <deploy-bucket> [stack-name] [Param=Value ...]}"

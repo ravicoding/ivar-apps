@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trade Log | Ivar Solutions Inc</title>
-<meta name="description" content="Stock trade log with a monthly profit and loss report.">
+<meta name="description" content="Stock and option trade log with a monthly profit and loss report.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#fdf0e3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1916" media="(prefers-color-scheme: dark)">
@@ -89,13 +89,14 @@
   form.trade .f-ticker { grid-column: span 2; } form.trade .f-qty { grid-column: span 1; }
   form.trade .f-bp, form.trade .f-sp { grid-column: span 1; } form.trade .f-bd, form.trade .f-sd { grid-column: span 2; }
   form.trade .f-notes { grid-column: span 3; }
+  form.trade .f-exp { grid-column: span 2; }
   form.trade .f-actions { grid-column: span 2; display: flex; gap: 8px; }
   form.trade .f-actions .btn { flex: 1; }
   .sell-group { display: contents; }
   .preview { grid-column: span 4; align-self: center; font: 0.92rem var(--sans); color: var(--muted); min-height: 1.4em; }
   .fieldset-label { grid-column: 1 / -1; margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--line); font: 700 0.68rem var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   .fieldset-label:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-  .fieldset-label span { font-weight: 400; letter-spacing: 0.04em; text-transform: none; font-style: italic; font-family: var(--serif); font-size: 0.85rem; }
+  .fieldset-label .hint { font-weight: 400; letter-spacing: 0.04em; text-transform: none; font-style: italic; font-family: var(--serif); font-size: 0.85rem; }
   @media (max-width: 760px) {
     form.trade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     form.trade > * { grid-column: span 1 !important; }
@@ -135,8 +136,7 @@
     #tradeTable td[data-k="pl"] { text-align: right; grid-row: 1; grid-column: 2; }
     #tradeTable td[data-k="buy"], #tradeTable td[data-k="sell"] { grid-column: 1 / -1; font-size: 0.88rem; }
     #tradeTable td.holding { display: none; }
-    #tradeTable td[data-k="buy"]::before { content: "Bought "; color: var(--muted); font: 0.78rem var(--sans); }
-    #tradeTable td[data-k="sell"]::before { content: "Sold "; color: var(--muted); font: 0.78rem var(--sans); }
+    #tradeTable td[data-k="buy"]::before, #tradeTable td[data-k="sell"]::before { content: attr(data-label) " "; color: var(--muted); font: 0.78rem var(--sans); }
     #tradeTable td[data-k="buy"] .sub, #tradeTable td[data-k="sell"] .sub { display: inline; margin-left: 6px; }
     #tradeTable td[data-k="actions"] { grid-column: 1 / -1; }
     #tradeTable td[data-k="actions"] .row-actions { justify-content: flex-start; margin-top: 4px; }
@@ -172,7 +172,11 @@
   /* Lock */
   .lock { max-width: 420px; margin: 8vh auto 0; padding: 24px; border: 1px solid var(--rule); background: var(--surface); display: grid; gap: 12px; }
   .lock h2 { font: 900 1.6rem var(--display); letter-spacing: 0; text-transform: none; }
-  .lock form { display: flex; gap: 8px; }
+  .gbtn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; padding: 10px 20px; border: 1px solid var(--line); background: #fff; color: #1f1f1f; font: 600 0.95rem var(--sans); }
+  .gbtn:hover:not(:disabled) { border-color: var(--rule); }
+  .gbtn:disabled { opacity: .6; cursor: progress; }
+  .gbtn svg { width: 20px; height: 20px; flex: none; }
+  .who { text-transform: none; letter-spacing: 0.02em; }
 </style>
 </head>
 <body>
@@ -199,12 +203,13 @@
 <main class="wrap" id="main">
   <section id="lock" class="lock" hidden aria-labelledby="lockTitle">
     <h2 id="lockTitle">Trade Log</h2>
-    <p>Enter the password. This browser remembers it, so you'll only be asked once.</p>
-    <form id="lockForm">
-      <label class="sr" for="pw">Password</label>
-      <input id="pw" type="password" autocomplete="current-password" required>
-      <button class="btn" type="submit">Unlock</button>
-    </form>
+    <p>Sign in with your Google account. This browser stays signed in for 30 days.</p>
+    <div>
+      <button class="gbtn" id="gBtn" type="button">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+    </div>
     <div id="lockMsg" class="msg err" aria-live="polite"></div>
   </section>
 
@@ -217,7 +222,7 @@
   <div id="app" hidden>
     <div class="head">
       <div>
-        <span class="kicker">Stock trades</span>
+        <span class="kicker">Stock and option trades</span>
         <h1>Trade Log</h1>
       </div>
       <div class="tabs" role="tablist" aria-label="Views">
@@ -232,14 +237,20 @@
         <div class="section-head"><h2 id="formTitle">Add a trade</h2></div>
         <div id="editBanner" class="editing-banner" hidden></div>
         <form id="tradeForm" class="trade" novalidate>
-          <div class="fieldset-label">Buy</div>
-          <div class="field f-ticker"><label class="label" for="fTicker">Ticker</label><input id="fTicker" name="ticker" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAPL" maxlength="15" required></div>
-          <div class="field f-qty"><label class="label" for="fQty">Quantity</label><input id="fQty" name="quantity" inputmode="decimal" placeholder="10" required></div>
-          <div class="field f-bp"><label class="label" for="fBuyPrice">Buy price ($)</label><input id="fBuyPrice" name="buy_price" inputmode="decimal" placeholder="150.25" required></div>
-          <div class="field f-bd"><label class="label" for="fBuyDate">Buy date</label><input id="fBuyDate" name="buy_date" type="date" required></div>
-          <div class="fieldset-label">Sell <span>leave blank if you still hold it</span></div>
-          <div class="field f-sp"><label class="label" for="fSellPrice">Sell price ($)</label><input id="fSellPrice" name="sell_price" inputmode="decimal" placeholder="160.75"></div>
-          <div class="field f-sd"><label class="label" for="fSellDate">Sell date</label><input id="fSellDate" name="sell_date" type="date"></div>
+          <div class="fieldset-label">Trade</div>
+          <div class="field f-type"><label class="label" for="fAsset">Type</label><select id="fAsset" name="asset"><option value="stock">Stock</option><option value="option">Option</option></select></div>
+          <div class="field f-ticker"><label class="label" for="fTicker" id="lTicker">Ticker</label><input id="fTicker" name="ticker" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AAPL" maxlength="15" required></div>
+          <div class="field f-qty"><label class="label" for="fQty" id="lQty">Shares</label><input id="fQty" name="quantity" inputmode="decimal" placeholder="10" required></div>
+          <div class="field f-kind opt" hidden><label class="label" for="fKind">Call or put</label><select id="fKind" name="option_type"><option value="call">Call</option><option value="put">Put</option></select></div>
+          <div class="field f-side opt" hidden><label class="label" for="fSide">Position</label><select id="fSide" name="side"><option value="long">Long (bought)</option><option value="short">Short (sold)</option></select></div>
+          <div class="field f-strike opt" hidden><label class="label" for="fStrike">Strike ($)</label><input id="fStrike" name="strike" inputmode="decimal" placeholder="200"></div>
+          <div class="field f-exp opt" hidden><label class="label" for="fExp">Expiration</label><input id="fExp" name="expiration" type="date"></div>
+          <div class="fieldset-label" id="openLabel">Buy</div>
+          <div class="field f-bp"><label class="label" for="fBuyPrice" id="lBuyPrice">Buy price ($)</label><input id="fBuyPrice" name="buy_price" inputmode="decimal" placeholder="150.25" required></div>
+          <div class="field f-bd"><label class="label" for="fBuyDate" id="lBuyDate">Buy date</label><input id="fBuyDate" name="buy_date" type="date" required></div>
+          <div class="fieldset-label"><span id="closeText">Sell</span> <span id="closeHint" class="hint">leave blank if you still hold it</span></div>
+          <div class="field f-sp"><label class="label" for="fSellPrice" id="lSellPrice">Sell price ($)</label><input id="fSellPrice" name="sell_price" inputmode="decimal" placeholder="160.75"></div>
+          <div class="field f-sd"><label class="label" for="fSellDate" id="lSellDate">Sell date</label><input id="fSellDate" name="sell_date" type="date"></div>
           <div class="field f-notes"><label class="label" for="fNotes">Notes (optional)</label><input id="fNotes" name="notes" maxlength="500" placeholder="Why you bought or sold"></div>
           <div class="preview num" id="preview" aria-live="polite"></div>
           <div class="f-actions">
@@ -254,17 +265,22 @@
         <div class="section-head">
           <h2 id="listTitle">Trades</h2>
           <div class="filters">
-            <div class="seg" role="group" aria-label="Show">
-              <button type="button" data-f="all" aria-pressed="true">All</button>
-              <button type="button" data-f="open" aria-pressed="false">Holding</button>
-              <button type="button" data-f="closed" aria-pressed="false">Sold</button>
+            <div class="seg" role="group" aria-label="Type" id="assetSeg">
+              <button type="button" data-v="all" aria-pressed="true">All</button>
+              <button type="button" data-v="stock" aria-pressed="false">Stocks</button>
+              <button type="button" data-v="option" aria-pressed="false">Options</button>
+            </div>
+            <div class="seg" role="group" aria-label="Show" id="statusSeg">
+              <button type="button" data-v="all" aria-pressed="true">All</button>
+              <button type="button" data-v="open" aria-pressed="false">Open</button>
+              <button type="button" data-v="closed" aria-pressed="false">Closed</button>
             </div>
             <label class="sr" for="search">Filter by ticker</label>
             <input id="search" type="search" placeholder="Filter ticker" autocomplete="off" autocapitalize="characters">
           </div>
         </div>
         <table id="tradeTable">
-          <thead><tr><th>Ticker</th><th>Bought</th><th>Sold</th><th class="r">Profit / loss</th><th><span class="sr">Actions</span></th></tr></thead>
+          <thead><tr><th>Ticker</th><th>Opened</th><th>Closed</th><th class="r">Profit / loss</th><th><span class="sr">Actions</span></th></tr></thead>
           <tbody id="tradeRows"></tbody>
         </table>
         <div class="table-foot"><span id="tradeCount"></span><span id="tradeSum" class="num"></span></div>
@@ -292,7 +308,7 @@
           <thead><tr><th>Month</th><th class="r">Trades</th><th class="r hide-sm">Won / lost</th><th class="r hide-sm">Cost</th><th class="r hide-sm">Proceeds</th><th class="r">Profit / loss</th><th class="r hide-sm">Return</th></tr></thead>
           <tbody id="monthRows"></tbody>
         </table>
-        <p class="report-note">Profit and loss is realized: each sold trade counts in the month of its sell date. Positions you still hold aren't included. Fees and taxes aren't tracked.</p>
+        <p class="report-note">Profit and loss is realized: each closed trade counts in the month it was closed. Positions you still hold aren't included. Options count 100 shares per contract; for options you sold short, cost is the premium received. Fees and taxes aren't tracked.</p>
         <div id="reportMsg" class="msg" aria-live="polite"></div>
       </section>
     </div>
@@ -300,7 +316,7 @@
 </main>
 
 <footer class="site-footer">
-  <div class="wrap"><span>&copy; 2022&ndash;2026 Ivar Solutions Inc</span><button id="signOut" type="button" hidden>Sign out of this device</button></div>
+  <div class="wrap"><span>&copy; 2022&ndash;2026 Ivar Solutions Inc</span><span id="whoBox" hidden><span class="who" id="who"></span> · <button id="signOut" type="button">Sign out</button></span></div>
 </footer>
 
 <script>
@@ -324,32 +340,131 @@
   const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids.filter((k) => k != null)); return e; };
   const setMsg = (node, text, kind = "") => { node.textContent = text; node.className = "msg " + kind; };
 
-  let password = store.get("tl_pw") || "";
-  let authRequired = true;
+  // Options: prices are per share and one contract is 100 shares. A short option opens with a sale.
+  const isOpt = (t) => t.asset === "option";
+  const isShort = (t) => isOpt(t) && t.side === "short";
+  const strikeText = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  const contractText = (t) => `${strikeText(t.strike)} ${t.option_type === "put" ? "put" : "call"}`;
+  const nameText = (t) => isOpt(t) ? `${t.ticker} ${contractText(t)}` : t.ticker;
+  const unitText = (t) => `${qtyText(t.quantity)} ${isOpt(t) ? (Number(t.quantity) === 1 ? "contract" : "contracts") : "sh"}`;
+  const openWord = (t) => !isOpt(t) ? "Bought" : isShort(t) ? "Sold to open" : "Bought to open";
+  const closeWord = (t) => !isOpt(t) ? "Sold" : isShort(t) ? "Bought back" : "Sold to close";
+
+  /* ---------- Google sign-in (Cognito hosted sign-in, authorization code with PKCE) ---------- */
+  const SIGN_IN = /*SIGN_IN_CONFIG*/{};
+  const AUTH_KEY = "tl_auth", OAUTH_KEY = "tl_oauth";
+  const readJson = (k) => { try { return JSON.parse(store.get(k) || "null"); } catch { return null; } };
+  const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const redirectUri = () => location.origin + "/";
+  const claimsOf = (jwt) => { try { return JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { return {}; } };
+  let auth = readJson(AUTH_KEY);   // { id, refresh, exp }
+
+  function saveAuth(data, refresh) {
+    auth = { id: data.id_token, refresh: data.refresh_token || refresh, exp: Date.now() + (data.expires_in || 3600) * 1000 };
+    store.set(AUTH_KEY, JSON.stringify(auth));
+  }
+  function clearAuth() { auth = null; store.del(AUTH_KEY); }
+
+  async function tokenCall(params) {
+    let r;
+    try {
+      r = await fetch(`https://${SIGN_IN.authDomain}/oauth2/token`, {
+        method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ client_id: SIGN_IN.clientId, ...params }).toString(),
+      });
+    } catch { throw new Error("Couldn't reach the sign-in service. Check your connection and try again."); }
+    const data = await r.json().catch(() => ({}));
+    return r.ok && data.id_token ? data : null;
+  }
+
+  // A valid ID token, refreshed when it is about to expire. Null means "sign in again".
+  async function idToken(force) {
+    if (!auth) return null;
+    if (!force && auth.exp - Date.now() > 60000) return auth.id;
+    if (!auth.refresh) { clearAuth(); return null; }
+    const data = await tokenCall({ grant_type: "refresh_token", refresh_token: auth.refresh });
+    if (!data) { clearAuth(); return null; }
+    saveAuth(data, auth.refresh);
+    return auth.id;
+  }
+
+  async function startGoogle(retried) {
+    $("#lockMsg").textContent = "";
+    if (!SIGN_IN.clientId || !SIGN_IN.authDomain) { $("#lockMsg").textContent = "Google sign-in isn't set up for this page."; return; }
+    $("#gBtn").disabled = true;
+    const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+    const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+    const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+    store.set(OAUTH_KEY, JSON.stringify({ verifier, state, retried: !!retried, report: location.hash === "#report" }));
+    location.assign(`https://${SIGN_IN.authDomain}/oauth2/authorize?` + new URLSearchParams({
+      response_type: "code", client_id: SIGN_IN.clientId, redirect_uri: redirectUri(), scope: "openid email profile",
+      identity_provider: "Google", code_challenge: challenge, code_challenge_method: "S256", state, prompt: "select_account",
+    }));
+  }
+
+  // Back from Google: swap the one-time code for tokens. Returns the error text to show, or "".
+  async function finishGoogle() {
+    const q = new URLSearchParams(location.search);
+    if (!q.has("code") && !q.has("error")) return "";
+    const o = readJson(OAUTH_KEY) || {};
+    store.del(OAUTH_KEY);
+    history.replaceState(null, "", "/" + (o.report ? "#report" : ""));
+    if (q.get("error")) {
+      const desc = q.get("error_description") || q.get("error");
+      // The very first Google sign-in can report this while Cognito links the accounts; a second try works.
+      if (/Already found an entry for username/i.test(desc) && !o.retried) { await startGoogle(true); return "redirecting"; }
+      return /PreSignUp|verified/i.test(desc) ? "Google couldn't confirm this account's email address, so sign-in was refused." : "Google sign-in didn't finish. Please try again.";
+    }
+    if (!o.state || q.get("state") !== o.state || !o.verifier) return "That sign-in couldn't be verified. Please try again.";
+    const data = await tokenCall({ grant_type: "authorization_code", code: q.get("code"), redirect_uri: redirectUri(), code_verifier: o.verifier });
+    if (!data) return "Google sign-in didn't finish. Please try again.";
+    saveAuth(data);
+    return "";
+  }
+
+  async function signOut() {
+    const refresh = auth && auth.refresh;
+    clearAuth();
+    if (refresh) {
+      try {
+        await fetch(`https://${SIGN_IN.authDomain}/oauth2/revoke`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ token: refresh, client_id: SIGN_IN.clientId }).toString() });
+      } catch { /* the token expires on its own */ }
+    }
+    location.assign(`https://${SIGN_IN.authDomain}/logout?` + new URLSearchParams({ client_id: SIGN_IN.clientId, logout_uri: redirectUri() }));
+  }
   let trades = [];
   let report = null;
   let filter = "all";
+  let assetFilter = "all";
   let editingId = null;
   let openMonth = null;
 
-  async function api(path, opts = {}) {
+  async function api(path, opts = {}, retried = false) {
+    const token = await idToken(retried);
+    if (!token) { showLock("Your sign-in expired. Sign in again."); throw new Error("locked"); }
     let r;
     try {
-      r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", "x-app-password": password } });
+      r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } });
     } catch { throw new Error("Couldn't reach the server. Check your connection and try again."); }
     const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { store.del("tl_pw"); showLock(password ? "Wrong password. Try again." : ""); throw new Error("locked"); }
+    if (r.status === 401 && !retried) return api(path, opts, true);   // token rejected: refresh once and retry
+    if (r.status === 401) { clearAuth(); showLock("Your sign-in expired. Sign in again."); throw new Error("locked"); }
+    if (r.status === 403) { showLock(`${j.error || "This account isn't allowed."} Sign in with a different Google account.`); clearAuth(); throw new Error("locked"); }
     if (!r.ok) throw new Error(j.error || `Request failed (${r.status}).`);
     return j;
   }
 
   function showLock(msg) {
     $("#app").hidden = true; $("#loadErr").hidden = true; $("#lock").hidden = false;
-    $("#lockMsg").textContent = msg || ""; $("#pw").focus();
+    $("#lockMsg").textContent = msg || ""; $("#whoBox").hidden = true;
+    $("#gBtn").disabled = false; $("#gBtn").focus();
   }
   function showApp() {
     $("#lock").hidden = true; $("#loadErr").hidden = true; $("#app").hidden = false;
-    $("#signOut").hidden = !authRequired;
+    const email = auth ? claimsOf(auth.id).email : "";
+    $("#who").textContent = email ? `Signed in as ${email}` : "";
+    $("#whoBox").hidden = !email;
   }
 
   /* ---------- trades ---------- */
@@ -384,9 +499,30 @@
     return b;
   }
 
+  // An open option past its expiration: one click closes it at $0 on the expiration date.
+  function expireButton(t) {
+    const b = el("button", { type: "button", className: "mini", textContent: "Mark expired" });
+    b.title = "Close it at $0 on the expiration date";
+    b.setAttribute("aria-label", `Mark the ${nameText(t)} as expired worthless`);
+    b.onclick = async () => {
+      b.disabled = true;
+      try {
+        const body = { ...Object.fromEntries(fields.map((f) => [f, t[f] ?? ""])), sell_price: "0", sell_date: t.expiration };
+        const saved = await api(`/api/trades/${t.id}`, { method: "PUT", body: JSON.stringify(body) });
+        setMsg($("#listMsg"), `Closed the ${nameText(t)} as expired: ${signed(saved.pnl)}.`, "ok");
+        report = null;
+        await loadTrades();
+      } catch (e) {
+        b.disabled = false;
+        if (e.message !== "locked") setMsg($("#listMsg"), e.message, "err");
+      }
+    };
+    return b;
+  }
+
   function renderTrades() {
     const q = $("#search").value.trim().toUpperCase();
-    const rows = trades.filter((t) => (filter === "all" || t.status === filter) && (!q || t.ticker.includes(q)));
+    const rows = trades.filter((t) => (filter === "all" || t.status === filter) && (assetFilter === "all" || t.asset === assetFilter) && (!q || t.ticker.includes(q)));
     const body = $("#tradeRows");
     body.textContent = "";
     if (!rows.length) {
@@ -394,27 +530,33 @@
         trades.length ? "No trades match this filter." : "No trades yet. Add your first one above." })));
     }
     for (const t of rows) {
+      const opt = isOpt(t), open = t.status === "open";
+      const expired = opt && open && t.expiration < today();
       const tk = el("td", {}, el("span", { className: "tk", textContent: t.ticker }));
-      if (t.status === "open") tk.append(" ", el("span", { className: "tag", textContent: "Holding" }));
+      if (opt) tk.append(" ", el("span", { className: "tag", textContent: isShort(t) ? "Short option" : "Option" }));
+      if (open) tk.append(" ", el("span", { className: "tag", textContent: expired ? "Past expiration" : opt ? "Open" : "Holding" }));
+      if (opt) tk.append(el("span", { className: "sub", textContent: `${contractText(t)} · expires ${dateText(t.expiration)}` }));
       if (t.notes) tk.append(el("span", { className: "note", textContent: t.notes }));
-      const buy = el("td", {}, el("span", { className: "num", textContent: `${qtyText(t.quantity)} sh @ ${money(t.buy_price)}` }), el("span", { className: "sub", textContent: dateText(t.buy_date) }));
-      const sell = t.status === "closed"
-        ? el("td", {}, el("span", { className: "num", textContent: money(t.sell_price) }), el("span", { className: "sub", textContent: dateText(t.sell_date) }))
-        : el("td", { className: "holding" }, el("span", { className: "sub", textContent: "Still holding" }));
-      const pl = t.status === "closed"
+      const buy = el("td", {}, el("span", { className: "num", textContent: `${unitText(t)} @ ${money(t.buy_price)}` }), el("span", { className: "sub", textContent: dateText(t.buy_date) }));
+      buy.dataset.label = openWord(t);
+      const sell = !open
+        ? el("td", {}, el("span", { className: "num", textContent: opt && t.sell_price === 0 ? "Expired at $0" : money(t.sell_price) }), el("span", { className: "sub", textContent: dateText(t.sell_date) }))
+        : el("td", { className: "holding" }, el("span", { className: "sub", textContent: opt ? "Still open" : "Still holding" }));
+      sell.dataset.label = closeWord(t);
+      const pl = !open
         ? el("td", { className: "r" }, el("span", { className: "num " + cls(t.pnl), textContent: signed(t.pnl) }), el("span", { className: "sub " + cls(t.pnl), textContent: pct(t.pnl_pct) }))
-        : el("td", { className: "r" }, el("span", { className: "num", textContent: money(t.cost) }), el("span", { className: "sub", textContent: "cost" }));
+        : el("td", { className: "r" }, el("span", { className: "num", textContent: money(t.cost) }), el("span", { className: "sub", textContent: isShort(t) ? "premium received" : "cost" }));
       const edit = el("button", { type: "button", className: "mini", textContent: "Edit" });
-      edit.setAttribute("aria-label", `Edit ${t.ticker} trade`);
+      edit.setAttribute("aria-label", `Edit ${nameText(t)} trade`);
       edit.onclick = () => startEditing(t);
-      const actions = el("td", {}, el("div", { className: "row-actions" }, edit, deleteButton(t)));
+      const actions = el("td", {}, el("div", { className: "row-actions" }, expired ? expireButton(t) : null, edit, deleteButton(t)));
       [[tk, "tk"], [buy, "buy"], [sell, "sell"], [pl, "pl"], [actions, "actions"]].forEach(([c, k]) => { c.dataset.k = k; });
       const tr = el("tr", {}, tk, buy, sell, pl, actions);
       body.append(tr);
     }
     const closed = rows.filter((t) => t.status === "closed");
     const total = closed.reduce((s, t) => s + t.pnl, 0);
-    $("#tradeCount").textContent = rows.length ? `${rows.length} trade${rows.length > 1 ? "s" : ""} · ${rows.length - closed.length} holding` : "";
+    $("#tradeCount").textContent = rows.length ? `${rows.length} trade${rows.length > 1 ? "s" : ""} · ${rows.length - closed.length} open` : "";
     const sum = $("#tradeSum");
     sum.textContent = closed.length ? `Realized ${signed(total)}` : "";
     sum.className = "num " + cls(total);
@@ -423,42 +565,73 @@
   /* ---------- form ---------- */
 
   const form = $("#tradeForm");
-  const fields = ["ticker", "quantity", "buy_price", "buy_date", "sell_price", "sell_date", "notes"];
+  const fields = ["asset", "ticker", "quantity", "option_type", "side", "strike", "expiration", "buy_price", "buy_date", "sell_price", "sell_date", "notes"];
   const values = () => Object.fromEntries(fields.map((f) => [f, form.elements[f].value.trim()]));
   const num = (s) => Number(String(s).replace(/[$,\s]/g, ""));
 
+  // Relabel the form for stocks, long options and short options.
+  function syncType() {
+    const opt = form.elements.asset.value === "option";
+    const short = opt && form.elements.side.value === "short";
+    form.querySelectorAll(".opt").forEach((n) => { n.hidden = !opt; });
+    $("#lTicker").textContent = opt ? "Underlying ticker" : "Ticker";
+    $("#lQty").textContent = opt ? "Contracts" : "Shares";
+    $("#openLabel").textContent = !opt ? "Buy" : short ? "Sell to open" : "Buy to open";
+    $("#closeText").textContent = !opt ? "Sell" : short ? "Buy to close" : "Sell to close";
+    $("#closeHint").textContent = opt ? "leave blank while it's open · enter 0 if it expired worthless" : "leave blank if you still hold it";
+    $("#lBuyPrice").textContent = !opt ? "Buy price ($)" : short ? "Premium received ($/share)" : "Premium paid ($/share)";
+    $("#lBuyDate").textContent = opt ? "Open date" : "Buy date";
+    $("#lSellPrice").textContent = opt ? "Closing price ($/share)" : "Sell price ($)";
+    $("#lSellDate").textContent = opt ? "Close date" : "Sell date";
+    form.elements.buy_price.placeholder = opt ? "3.10" : "150.25";
+    form.elements.sell_price.placeholder = opt ? "5.00" : "160.75";
+    form.elements.quantity.placeholder = opt ? "1" : "10";
+  }
+
   function check(v) {
+    const opt = v.asset === "option";
+    const [o, c] = opt ? ["opening", "closing"] : ["buy", "sell"];
     if (!/^[A-Za-z0-9][A-Za-z0-9.\-^=]{0,14}$/.test(v.ticker)) return ["ticker", "Enter a ticker symbol, like AAPL or BRK.B."];
-    if (!(num(v.quantity) > 0)) return ["quantity", "Enter the quantity, a number above zero."];
-    if (!(num(v.buy_price) > 0)) return ["buy_price", "Enter the buy price, a number above zero."];
-    if (!v.buy_date) return ["buy_date", "Enter the buy date."];
-    if (v.buy_date > today()) return ["buy_date", "The buy date can't be in the future."];
-    if (v.sell_price && !(num(v.sell_price) > 0)) return ["sell_price", "The sell price must be a number above zero."];
-    if (!!v.sell_price !== !!v.sell_date) return [v.sell_price ? "sell_date" : "sell_price", "Enter both the sell price and the sell date, or leave both blank if you still hold it."];
-    if (v.sell_date && v.sell_date < v.buy_date) return ["sell_date", "The sell date can't be before the buy date."];
-    if (v.sell_date && v.sell_date > today()) return ["sell_date", "The sell date can't be in the future."];
+    if (!(num(v.quantity) > 0)) return ["quantity", opt ? "Enter the number of contracts, above zero." : "Enter the quantity, a number above zero."];
+    if (opt && !(num(v.strike) > 0)) return ["strike", "Enter the strike price, a number above zero."];
+    if (opt && !v.expiration) return ["expiration", "Enter the expiration date."];
+    if (!(num(v.buy_price) > 0)) return ["buy_price", `Enter the ${o} price, a number above zero.`];
+    if (!v.buy_date) return ["buy_date", `Enter the ${o} date.`];
+    if (v.buy_date > today()) return ["buy_date", `The ${o} date can't be in the future.`];
+    if (opt && v.buy_date > v.expiration) return ["buy_date", "The opening date can't be after the expiration date."];
+    if (v.sell_price && !(opt ? num(v.sell_price) >= 0 : num(v.sell_price) > 0)) return ["sell_price", opt ? "The closing price must be a number, 0 or more." : "The sell price must be a number above zero."];
+    if (!!v.sell_price !== !!v.sell_date) return [v.sell_price ? "sell_date" : "sell_price", `Enter both the ${c} price and the ${c} date, or leave both blank while it's still open.`];
+    if (v.sell_date && v.sell_date < v.buy_date) return ["sell_date", `The ${c} date can't be before the ${o} date.`];
+    if (v.sell_date && v.sell_date > today()) return ["sell_date", `The ${c} date can't be in the future.`];
+    if (opt && v.sell_date && v.sell_date > v.expiration) return ["sell_date", "The closing date can't be after the expiration date."];
     return null;
   }
 
+  // Mirrors amounts() in app.py: cost is the opening leg's value; P/L flips for short options.
   function updatePreview() {
-    const v = values(), q = num(v.quantity), b = num(v.buy_price), s = num(v.sell_price);
+    const v = values(), opt = v.asset === "option", short = opt && v.side === "short";
+    const q = num(v.quantity) * (opt ? 100 : 1), b = num(v.buy_price), s = num(v.sell_price);
     const p = $("#preview");
     p.className = "preview num";
     if (!(q > 0 && b > 0)) { p.textContent = ""; return; }
-    if (v.sell_price && s > 0) {
-      const pl = q * (s - b);
-      p.textContent = `Cost ${money(q * b)} · proceeds ${money(q * s)} · ${signed(pl)} (${pct((s / b - 1) * 100)})`;
+    const cost = q * b, costWord = short ? "Premium" : "Cost";
+    if (v.sell_price !== "" && (opt ? s >= 0 : s > 0)) {
+      const pl = short ? cost - q * s : q * s - cost;
+      p.textContent = `${costWord} ${money(cost)} · ${signed(pl)} (${pct(pl / cost * 100)})`;
       p.classList.add(cls(pl));
     } else {
-      p.textContent = `Cost ${money(q * b)}`;
+      p.textContent = `${costWord} ${money(cost)}`;
     }
   }
 
   function startEditing(t) {
     editingId = t.id;
     for (const f of fields) form.elements[f].value = t[f] ?? "";
+    if (!form.elements.option_type.value) form.elements.option_type.value = "call";
+    if (!form.elements.side.value) form.elements.side.value = "long";
+    syncType();
     $("#formTitle").textContent = "Edit trade";
-    $("#editBanner").textContent = `Editing ${t.ticker}, bought ${dateText(t.buy_date)}. Change any field and save.`;
+    $("#editBanner").textContent = `Editing ${nameText(t)}, ${openWord(t).toLowerCase()} ${dateText(t.buy_date)}. Change any field and save.`;
     $("#editBanner").hidden = false;
     $("#saveBtn").textContent = "Save changes";
     $("#cancelBtn").hidden = false;
@@ -476,10 +649,13 @@
     $("#editBanner").hidden = true;
     $("#saveBtn").textContent = "Add trade";
     $("#cancelBtn").hidden = true;
+    syncType();
     updatePreview();
   }
 
   form.addEventListener("input", updatePreview);
+  form.elements.asset.addEventListener("change", () => { syncType(); updatePreview(); });
+  form.elements.side.addEventListener("change", () => { syncType(); updatePreview(); });
   $("#cancelBtn").onclick = () => { stopEditing(); setMsg($("#formMsg"), ""); };
   form.addEventListener("keydown", (e) => { if (e.key === "Escape" && editingId) { stopEditing(); setMsg($("#formMsg"), ""); } });
 
@@ -505,13 +681,16 @@
     } finally { btn.disabled = false; }
   });
 
-  document.querySelectorAll(".seg button").forEach((b) => {
-    b.onclick = () => {
-      filter = b.dataset.f;
-      document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-      renderTrades();
-    };
-  });
+  for (const [id, set] of [["#statusSeg", (v) => { filter = v; }], ["#assetSeg", (v) => { assetFilter = v; }]]) {
+    const btns = document.querySelectorAll(`${id} button`);
+    btns.forEach((b) => {
+      b.onclick = () => {
+        set(b.dataset.v);
+        btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        renderTrades();
+      };
+    });
+  }
   $("#search").addEventListener("input", renderTrades);
 
   /* ---------- report ---------- */
@@ -535,7 +714,7 @@
     const best = r.months.filter((m) => m.trades).sort((a, b) => b.pnl - a.pnl)[0];
     $("#stats").replaceChildren(
       stat(`Realized ${r.year}`, signed(t.pnl), t.pnl_pct == null ? "no sales yet" : `${pct(t.pnl_pct)} on ${money(t.cost)} cost`, cls(t.pnl)),
-      stat("Trades sold", String(t.trades), `${t.wins} won · ${t.losses} lost`),
+      stat("Trades closed", String(t.trades), `${t.wins} won · ${t.losses} lost`),
       stat("Win rate", winRate, best ? `best month ${MONTHS[Number(best.month.slice(5)) - 1]}` : "—"),
       stat("Holding now", String(r.open.positions), r.open.positions ? `${money(r.open.cost)} cost` : "no open positions"),
     );
@@ -588,7 +767,7 @@
           const x = byId[id];
           if (!x) continue;
           list.append(el("li", {},
-            el("span", {}, el("strong", { className: "num", textContent: x.ticker }), ` ${qtyText(x.quantity)} sh · ${money(x.buy_price)} → ${money(x.sell_price)} · sold ${dateText(x.sell_date)}`),
+            el("span", {}, el("strong", { className: "num", textContent: nameText(x) }), ` ${isShort(x) ? "short · " : ""}${unitText(x)} · ${money(x.buy_price)} → ${money(x.sell_price)} · closed ${dateText(x.sell_date)}`),
             el("span", { className: "num " + cls(x.pnl), textContent: signed(x.pnl) })));
         }
         body.append(el("tr", { className: "detail" }, el("td", { colSpan: 7 }, list)));
@@ -624,10 +803,12 @@
     for (const m of report.months) lines.push([m.month, m.trades, m.wins, m.losses, m.cost.toFixed(2), m.proceeds.toFixed(2), m.pnl.toFixed(2), m.pnl_pct == null ? "" : m.pnl_pct.toFixed(2)].join(","));
     const t = report.total;
     lines.push(["Total", t.trades, t.wins, t.losses, t.cost.toFixed(2), "", t.pnl.toFixed(2), t.pnl_pct == null ? "" : t.pnl_pct.toFixed(2)].join(","));
-    lines.push("", ["Ticker", "Quantity", "Buy price", "Buy date", "Sell price", "Sell date", "Profit/Loss", "Notes"].join(","));
+    lines.push("", ["Type", "Ticker", "Call/Put", "Strike", "Expiration", "Position", "Quantity", "Open price", "Open date", "Close price", "Close date", "Profit/Loss", "Notes"].join(","));
     for (const m of report.months) for (const id of m.trade_ids) {
       const x = byId[id]; if (!x) continue;
-      lines.push([x.ticker, x.quantity, x.buy_price, x.buy_date, x.sell_price, x.sell_date, x.pnl.toFixed(2), q(x.notes)].join(","));
+      const o = isOpt(x);
+      lines.push([x.asset, x.ticker, o ? x.option_type : "", o ? x.strike : "", o ? x.expiration : "", o ? x.side : "long",
+        x.quantity, x.buy_price, x.buy_date, x.sell_price, x.sell_date, x.pnl.toFixed(2), q(x.notes)].join(","));
     }
     const url = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
     const a = el("a", { href: url, download: `trade-log-${report.year}.csv` });
@@ -658,11 +839,10 @@
   });
 
   async function start() {
-    try {
-      const h = await fetch("/health").then((r) => r.json());
-      authRequired = !!h.auth_required;
-    } catch { /* assume a password is needed */ }
-    if (authRequired && !password) return showLock("");
+    let msg = "";
+    try { msg = await finishGoogle(); } catch (e) { msg = e.message; }
+    if (msg === "redirecting") return;
+    if (!auth) return showLock(msg);
     try {
       await loadTrades();
       showApp();
@@ -675,19 +855,9 @@
     }
   }
 
-  $("#lockForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    password = $("#pw").value;
-    try {
-      await loadTrades();
-      store.set("tl_pw", password);
-      $("#pw").value = "";
-      showApp(); stopEditing();
-      if (location.hash === "#report") showTab("report");
-    } catch (err) { if (err.message !== "locked") $("#lockMsg").textContent = err.message; }
-  });
+  $("#gBtn").onclick = () => startGoogle(false);
   $("#retry").onclick = start;
-  $("#signOut").onclick = () => { store.del("tl_pw"); password = ""; trades = []; report = null; showLock(""); };
+  $("#signOut").onclick = signOut;
 
   start();
 })();
