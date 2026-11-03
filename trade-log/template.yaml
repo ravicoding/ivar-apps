@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Trade Log - stock trades in DynamoDB with a monthly profit/loss report, at log.ivarsolutions.net
+
+Parameters:
+  AllowedEmails:
+    Type: String
+    Description: Comma-separated Google account emails allowed to use the app.
+  UserPoolId:
+    Type: String
+    Default: us-east-1_jwvM6Q2KJ
+    Description: Cognito user pool with the Google sign-in provider (shared with Daylog).
+  AuthDomain:
+    Type: String
+    Default: daylog-ravi-160275.auth.us-east-1.amazoncognito.com
+    Description: Hosted sign-in domain of that user pool.
+  DomainName:
+    Type: String
+    Default: log.ivarsolutions.net
+  HostedZoneId:
+    Type: String
+    Default: Z06984832CZSILX4TS7JD
+    Description: Route 53 zone for ivarsolutions.net (used for the certificate check and the DNS record).
+
+Resources:
+  TradesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  # Google sign-in through the shared Cognito pool. Public client (no secret): the page uses PKCE.
+  SignInClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPoolId
+      ClientName: trade-log
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      SupportedIdentityProviders: [Google]
+      CallbackURLs: [!Sub "https://${DomainName}/"]
+      LogoutURLs: [!Sub "https://${DomainName}/"]
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      IdTokenValidity: 60
+      AccessTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        IdToken: minutes
+        AccessToken: minutes
+        RefreshToken: days
+
+  TradeApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        Authorizers:
+          GoogleSignIn:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolId}
+              audience:
+                - !Ref SignInClient
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+      DisableExecuteApiEndpoint: true
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref Certificate
+        EndpointConfiguration: REGIONAL
+        Route53:
+          HostedZoneId: !Ref HostedZoneId
+
+  TradeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      Runtime: python3.12
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TradesTable
+          ALLOWED_EMAILS: !Ref AllowedEmails
+          CLIENT_ID: !Ref SignInClient
+          AUTH_DOMAIN: !Ref AuthDomain
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref TradesTable
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /
+            Method: GET
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /health
+            Method: GET
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref TradeApi
+            Path: /api/{proxy+}
+            Method: ANY
+            Auth:
+              Authorizer: GoogleSignIn
+
+  TradeFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${TradeFunction}
+      RetentionInDays: 30
+
+Outputs:
+  Url:
+    Value: !Sub https://${DomainName}/
+  TableName:
+    Value: !Ref TradesTable
+  FunctionName:
+    Value: !Ref TradeFunction

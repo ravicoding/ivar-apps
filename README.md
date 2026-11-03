@@ -8,6 +8,7 @@
 | `daylog-api/` | AWS SAM backend for Daylog: Lambda, API Gateway, DynamoDB, S3, Cognito. See its README |
 | `publications-api/` | AWS SAM backend for `publish.html`: Lambda and API Gateway that write publications to the site bucket and refresh CloudFront. Sign-in reuses the Daylog Cognito pool. See its README |
 | `stock-alerts/` | Price Alerts: low/high price ranges per stock, checked every 5 minutes in market hours, text (SNS) and ntfy push alerts (AWS SAM: Lambda + Function URL, DynamoDB, EventBridge Scheduler). Page at ivarsolutions.net/alerts/. See its README |
+| `trade-log/` | Trade Log: stock trades (ticker, quantity, buy/sell price and dates) in DynamoDB with a monthly profit/loss report (AWS SAM: Lambda serving page + API, HTTP API, custom domain). Live at log.ivarsolutions.net. See its README |
 | `market-pulse/` | Market Pulse: stock news and US economic calendar (AWS SAM: scheduled Lambda, DynamoDB, HTTP API). Live at marketpulse.ivarsolutions.net. See its README |
 
 ## Deploy the web pages
