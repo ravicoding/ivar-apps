@@ -251,6 +251,139 @@
     #prevDay, #nextDay, .nb-btn { display: none; }
     .nb-nav { grid-template-columns: 1fr; }
   }
+
+  /* ===== Warm notebook style =====
+     Kraft-paper page, lined-paper cards held on with washi tape, handwritten headings,
+     terracotta accent and polaroid photos. Everything above still applies; this block only
+     overrides the look, so deleting it brings back the Broadsheet style. */
+  :root {
+    --bg: #efe4cf; --surface: #fbf6ea; --surface2: #f3e8d2; --ink: #3b2f22; --muted: #7a6648; --line: #dccaa6; --rule: #6b4a33;
+    --accent: #c8553d; --accent-ink: #fff8ee; --signal: #c8553d; --link: #9a3f2c; --ok: #4f7a52; --danger: #b03a2e;
+    --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+    --tape: rgba(222, 170, 120, .55); --tape2: rgba(150, 185, 160, .55);
+    --paper-line: rgba(70, 55, 40, .16); --margin-line: rgba(200, 85, 61, .35);
+    --shadow: 0 1px 2px rgba(60, 40, 15, .18), 0 8px 22px rgba(60, 40, 15, .12);
+    --lh: 32px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #2a2219; --surface: #362c21; --surface2: #40352a; --ink: #f1e6d2; --muted: #c4b293; --line: #574837; --rule: #c4b293;
+      --accent: #e07a5f; --accent-ink: #2a2219; --signal: #e8907a; --link: #f0a58f; --ok: #9cc89e; --danger: #ff8f80;
+      --tape: rgba(224, 160, 110, .38); --tape2: rgba(140, 180, 150, .35);
+      --paper-line: rgba(241, 230, 210, .10); --margin-line: rgba(224, 122, 95, .35);
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 26px rgba(0, 0, 0, .35);
+      color-scheme: dark;
+    }
+  }
+  /* kraft paper: base colour plus faint fibres */
+  body, .top {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(120, 85, 40, .07) 0 1px, transparent 2px),
+      radial-gradient(circle at 70% 80%, rgba(120, 85, 40, .06) 0 1px, transparent 2px);
+    background-size: 7px 7px, 11px 11px;
+  }
+  .site-header { background: transparent; }
+  .site-header { border-bottom: 2px dashed var(--line); }
+  .site-footer { border-top: 2px dashed var(--line); }
+  .site-brand img { box-shadow: var(--shadow); }
+
+  /* sticky app header: a strip of paper so content doesn't show through when scrolling */
+  .top { border-bottom: 2px dashed var(--line); background-attachment: fixed; }
+  body { background-attachment: fixed; }
+  .brand { font: 700 clamp(2.6rem, 2rem + 2vw, 3.4rem)/0.9 var(--hand); letter-spacing: 0; color: var(--ink); }
+  .beta, .beta-n { border-radius: 999px; border-color: var(--accent); color: var(--accent); }
+  .beta { transform: rotate(-4deg); }
+  .count { font: 600 1.25rem var(--hand); }
+  .chip { border-radius: 999px; background: var(--surface); border-color: var(--line); }
+  .date-input { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); font: 700 1.4rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .icon-btn { border-radius: 50%; background: var(--surface); border-color: var(--line); box-shadow: var(--shadow); color: var(--accent); }
+  .date-note { font: 600 1.25rem var(--hand); font-style: normal; color: var(--accent); }
+
+  /* lined paper card with washi tape across the top */
+  .composer, .nb-link, .backup, .entry { position: relative; }
+  .composer {
+    border: 0; border-radius: 4px 4px 10px 10px; box-shadow: var(--shadow);
+    background-color: var(--surface);
+    background-image: linear-gradient(90deg, transparent 46px, var(--margin-line) 46px, var(--margin-line) 47.5px, transparent 47.5px);
+    padding: 34px 20px 20px 58px;
+  }
+  .composer::before, .entry::before, .nb-link::before {
+    content: ""; position: absolute; top: -11px; left: 50%; width: 120px; height: 24px; margin-left: -60px;
+    background: var(--tape); transform: rotate(-2.5deg); box-shadow: 0 1px 1px rgba(0, 0, 0, .06);
+    -webkit-mask: linear-gradient(90deg, transparent 0 3px, #000 3px calc(100% - 3px), transparent calc(100% - 3px)), repeating-linear-gradient(0deg, #000 0 3px, transparent 3px 4px);
+  }
+  .composer:focus-within { box-shadow: var(--shadow), 0 0 0 2px var(--accent); }
+  textarea {
+    font: 600 1.55rem/var(--lh) var(--hand); padding: 0 2px; color: var(--ink);
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-line) calc(var(--lh) - 1px), var(--paper-line) var(--lh));
+    background-attachment: local; min-height: calc(var(--lh) * 5);
+  }
+  textarea::placeholder { font-style: normal; color: var(--muted); opacity: .8; }
+  .tool { border: 1.5px dashed var(--line); border-radius: 10px; background: transparent; font: 700 1.2rem var(--hand); letter-spacing: 0.02em; text-transform: none; color: var(--ink); }
+  .tool:hover { border-color: var(--accent); background: var(--surface2); color: var(--accent); }
+  .save { border-radius: 10px; border-color: var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 1.5rem var(--hand); letter-spacing: 0.02em; text-transform: none; box-shadow: 0 2px 0 rgba(0, 0, 0, .18); }
+  .save:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .save:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+  .msg { font: 600 1.15rem var(--hand); font-style: normal; }
+  .thumbs img { border: 0; padding: 4px 4px 12px; background: #fffdf6; box-shadow: 0 1px 3px rgba(40, 25, 5, .35); }
+
+  /* section heads and each day's entries as taped-in notes */
+  h2 { font: 700 1.7rem/1.1 var(--hand); letter-spacing: 0; text-transform: none; }
+  .section-head { border-top: 0; border-bottom: 2px dashed var(--line); padding: 0 0 6px; margin-bottom: 18px; }
+  .entries { display: grid; gap: 22px; }
+  .entry { padding: 22px 20px 18px; border: 0; border-radius: 4px; background: var(--surface); box-shadow: var(--shadow); }
+  .entries .entry:nth-child(odd) { transform: rotate(-.35deg); }
+  .entries .entry:nth-child(even) { transform: rotate(.35deg); }
+  .entries .entry:nth-child(even)::before { background: var(--tape2); transform: rotate(2deg); left: 30%; }
+  .meta { font: 700 1.2rem var(--hand); letter-spacing: 0.02em; text-transform: none; color: var(--accent); }
+  .link { font: 700 1.2rem var(--hand); font-style: normal; color: var(--link); }
+  .body { font-size: 1.08em; }
+  .empty { font: 600 1.45rem var(--hand); font-style: normal; color: var(--muted); }
+  .entries .empty { background: transparent; box-shadow: none; transform: none; }
+  /* polaroid photos, slightly tilted */
+  .grid { gap: 16px; }
+  .photo { border: 0; padding: 6px 6px 22px; background: #fffdf6; box-shadow: 0 1px 4px rgba(40, 25, 5, .35); transform: rotate(-1.5deg); transition: transform .15s ease; }
+  .grid li:nth-child(even) .photo { transform: rotate(1.8deg); }
+  .photo:hover { transform: rotate(0) scale(1.03); }
+  .ph { border-radius: 4px; }
+
+  /* side cards */
+  .nb-link { border: 0; border-radius: 4px 4px 10px 10px; box-shadow: var(--shadow); background: var(--surface); }
+  .nb-link::before { background: var(--tape2); width: 90px; margin-left: -45px; transform: rotate(3deg); }
+  .nb-link b { font: 700 1.7rem/1 var(--hand); }
+  .nb-link svg, .nb-link .go { color: var(--accent); }
+  .backup { border-top: 2px dashed var(--line); }
+  .backup summary { font: 700 1.3rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .ghost, .primary, .danger { border-radius: 10px; font: 700 1.2rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .ghost { border-color: var(--line); background: var(--surface); }
+  .ghost:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .primary:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .hint { font-size: 1rem; }
+  @media (min-width: 900px) { main > section:not(.composer) { border-left: 2px dashed var(--line); } }
+
+  /* dialogs and toast */
+  dialog { border: 0; border-radius: 12px; background: var(--surface); box-shadow: 0 20px 50px rgba(30, 20, 5, .4); }
+  dialog::backdrop { background: rgba(50, 35, 15, .45); }
+  .sheet h2 { font: 700 2.1rem/1 var(--hand); border-bottom: 2px dashed var(--line); }
+  .sheet textarea { border-radius: 8px; background-color: var(--surface); font-size: 1.45rem; }
+  .field { font: 700 1.15rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .field input { border-bottom: 1.5px dashed var(--rule); font-family: var(--serif); }
+  .gbtn { border-radius: 10px; background: #fff; color: #1f1f1f; border-color: var(--line); font: 600 0.95rem var(--sans); letter-spacing: 0.02em; text-transform: none; }
+  .toast { border-radius: 12px; background: var(--ink); color: var(--bg); font: 600 1.3rem var(--hand); font-style: normal; box-shadow: var(--shadow); }
+  .toast button { font: 700 1.2rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+
+  /* notebook view: the page already looks like paper; restyle only the controls around it */
+  .nb-top { border-bottom: 2px dashed var(--line); }
+  .nb-title { font: 700 2.2rem var(--hand); }
+  .nb-back { font: 700 1.3rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .nb-btn { border-radius: 10px; font: 700 1.35rem var(--hand); letter-spacing: 0.02em; text-transform: none; }
+  .nb-btn:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .nb-mid { font: 600 1.2rem var(--hand); font-style: normal; }
+  .nb-mid input { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  @media (prefers-color-scheme: dark) { .photo, .thumbs img { background: #e9dfcc; } }
+  @media (prefers-reduced-motion: reduce) { .entries .entry, .photo, .grid li:nth-child(even) .photo { transform: none; } }
 </style>
 </head>
 <body>
