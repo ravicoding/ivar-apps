@@ -252,5 +252,12 @@ class HttpTests(unittest.TestCase):
             self.assertEqual(app.handler(event, None)["statusCode"], 400)
 
 
+class DashboardTests(unittest.TestCase):
+    def test_page_has_dashboard(self):
+        status, html = call(FakeTable(), "GET", "/", claims=None)
+        self.assertEqual(status, 200)
+        self.assertIn('id="viewDash"', html)
+
+
 if __name__ == "__main__":
     unittest.main()
