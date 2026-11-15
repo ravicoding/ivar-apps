@@ -5,8 +5,8 @@ opening price and date, closing price and date, notes; for options also call/put
 and expiration) in DynamoDB and see realized profit/loss by month.
 
 - `src/app.py` – one Lambda that serves the page (`GET /`) and the JSON API (`/api/*`)
-- `src/index.html` – the page (ivarsolutions.net masthead; Stocks, Options and Monthly report tabs —
-  each trade tab has its own form and list, and the report combines both)
+- `src/index.html` – the page (ivarsolutions.net masthead; Dashboard, Stocks, Options and Monthly report
+  tabs — each trade tab has its own form and list, and the report combines both)
 - `template.yaml` – DynamoDB table (point-in-time backups, kept if the stack is deleted), Lambda,
   HTTP API, ACM certificate and the `log.ivarsolutions.net` domain + Route 53 record
 - Sign-in: Google, through the Daylog Cognito user pool (the stack adds its own app client). API
@@ -19,6 +19,14 @@ and expiration) in DynamoDB and see realized profit/loss by month.
 ./deploy.sh <deploy-bucket> trade-log AllowedEmails=you@gmail.com   # first time
 ./deploy.sh <deploy-bucket>                                          # later: keeps the parameters
 ```
+
+## Dashboard
+
+The first tab. **Open positions** are listed at cost (no live prices): stock lots of one ticker are
+combined with average cost and how long they've been held; options show premium paid or received
+and days to expiration. Below, a period switch (this year, last 12 months, all time) scopes realized
+P/L, win rate, profit factor, average win/loss, best day, a cumulative P/L curve, a by-day calendar
+(last 53 weeks at most; losses are hatched as well as red) and P/L by ticker.
 
 ## How profit/loss is counted
 

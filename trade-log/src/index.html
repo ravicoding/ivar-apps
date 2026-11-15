@@ -6,32 +6,23 @@
 <title>Trade Log | Ivar Solutions Inc</title>
 <meta name="description" content="Stock and option trade log with a monthly profit and loss report.">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#fdf0e3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1c1916" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0f172a">
 <link rel="icon" href="https://ivarsolutions.net/img/logo/touch.png">
 <link rel="apple-touch-icon" href="https://ivarsolutions.net/img/logo/touch.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Libre+Franklin:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Style: Broadsheet (same tokens as ivarsolutions.net) */
+  /* Style: dark trading terminal (always dark, whatever the device setting) */
   :root {
-    --bg: #fdf0e3; --surface: #fffaf3; --surface2: #f6e1cc; --ink: #2b2723; --muted: #5a524a; --line: #d9c3ad; --rule: #2b2723;
-    --accent: #2b2723; --accent-ink: #fdf0e3; --signal: #a3241c; --link: #0f5499; --gain: #1f6b45; --loss: #b3261e;
-    --gain-soft: #dcefe3; --loss-soft: #f8dcd8;
+    --bg: #0f172a; --surface: #1e293b; --surface2: #273449; --ink: #e2e8f0; --muted: #94a3b8; --line: #334155; --rule: #64748b;
+    --accent: #38bdf8; --accent-ink: #0f172a; --signal: #7dd3fc; --link: #7dd3fc; --gain: #22c55e; --loss: #ef4444;
+    --gain-soft: #12301f; --loss-soft: #3b1518;
     --display: "Playfair Display", "Times New Roman", Georgia, serif;
     --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
     --sans: "Libre Franklin", "Helvetica Neue", Arial, sans-serif;
     --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    color-scheme: light;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1c1916; --surface: #25211d; --surface2: #2f2924; --ink: #f1e6da; --muted: #c3b5a6; --line: #3d362f; --rule: #f1e6da;
-      --accent: #f1e6da; --accent-ink: #1c1916; --signal: #ef7a6e; --link: #8dbcf0; --gain: #7fc8a0; --loss: #ff8a80;
-      --gain-soft: #1f3529; --loss-soft: #3f2422;
-      color-scheme: dark;
-    }
+    color-scheme: dark;
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -78,9 +69,9 @@
   input:focus, select:focus, textarea:focus { border-color: var(--rule); }
   #ticker, #fTicker { text-transform: uppercase; font-family: var(--mono); }
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 20px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 700 0.76rem var(--sans); letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
-  .btn:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); color: #fff; }
+  .btn:hover:not(:disabled) { background: var(--signal); border-color: var(--signal); color: var(--accent-ink); }
   .btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
-  .btn.ghost:hover:not(:disabled) { color: #fff; }
+  .btn.ghost:hover:not(:disabled) { color: var(--accent-ink); }
   .btn:disabled { opacity: .5; cursor: progress; }
   .msg { min-height: 1.4em; font: 0.9rem var(--sans); }
   .msg.err { color: var(--loss); } .msg.ok { color: var(--gain); }
@@ -169,6 +160,69 @@
   @media (max-width: 640px) { #monthTable .hide-sm { display: none; } }
   .report-note { margin-top: 12px; color: var(--muted); font: italic 0.92rem var(--serif); }
 
+  /* Dashboard */
+  .dash-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding-top: 24px; }
+  .dash-head p { margin: 0; color: var(--muted); font: 0.85rem var(--sans); }
+  .stats.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  @media (max-width: 900px) { .stats.five { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stats.five .stat:nth-child(4) { padding-left: 0; border-left: 0; } .stats.five .stat:nth-child(n+4) { border-top: 1px solid var(--line); } }
+  @media (max-width: 640px) {
+    .stats.five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stats.five .stat { padding-left: 16px; border-left: 1px solid var(--line); border-top: 0; }
+    .stats.five .stat:nth-child(odd) { padding-left: 0; border-left: 0; }
+    .stats.five .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .tabs { width: 100%; }
+    .tabs button { flex: 1; padding: 8px 4px; font-size: 0.64rem; letter-spacing: 0.08em; }
+    .long-label { display: none; }
+  }
+  .plot { position: relative; margin-top: 16px; }
+  .plot svg { display: block; width: 100%; overflow: visible; }
+  .plot .grid line { stroke: var(--line); stroke-width: 1; }
+  .plot .zero { stroke: var(--rule); stroke-width: 1; }
+  .plot .axis text { fill: var(--muted); font: 600 11px var(--sans); }
+  .plot .curve { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+  .plot .hair { stroke: var(--muted); stroke-width: 1; }
+  .plot .dot { stroke: var(--surface); stroke-width: 2; }
+  .plot .hit { fill: transparent; cursor: crosshair; }
+  .tip { position: fixed; z-index: 5; pointer-events: none; min-width: 150px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--rule); font: 0.82rem var(--sans); box-shadow: 0 6px 20px rgb(0 0 0 / .45); }
+  .tip strong { display: block; font: 700 1rem var(--mono); font-variant-numeric: tabular-nums; }
+  .tip span { display: block; color: var(--muted); }
+  .heat-wrap { overflow-x: auto; padding-bottom: 4px; margin-top: 14px; }
+  .heat { display: grid; grid-auto-flow: column; grid-template-rows: 14px repeat(7, 13px); grid-auto-columns: 13px; gap: 3px; width: max-content; }
+  .heat .mlabel { grid-row: 1; font: 600 10px/14px var(--sans); color: var(--muted); white-space: nowrap; overflow: visible; }
+  .cell { border-radius: 2px; background: var(--surface2); border: 0; padding: 0; }
+  .cell.out { visibility: hidden; }
+  .cell:hover, .cell:focus-visible { outline: 2px solid var(--ink); outline-offset: 0; }
+  .cell.g1 { background: color-mix(in srgb, var(--gain) 35%, var(--surface2)); }
+  .cell.g2 { background: color-mix(in srgb, var(--gain) 65%, var(--surface2)); }
+  .cell.g3 { background: var(--gain); }
+  /* Losses also carry a diagonal hatch, so gain and loss differ without relying on color. */
+  .cell.l1, .cell.l2, .cell.l3 { background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .45) 0 1.5px, transparent 1.5px 4px); }
+  .cell.l1 { background-color: color-mix(in srgb, var(--loss) 35%, var(--surface2)); }
+  .cell.l2 { background-color: color-mix(in srgb, var(--loss) 65%, var(--surface2)); }
+  .cell.l3 { background-color: var(--loss); }
+  .heat-legend { display: flex; align-items: center; gap: 3px; margin-top: 10px; color: var(--muted); font: 0.78rem var(--sans); }
+  .heat-legend .cell { display: inline-block; width: 13px; height: 13px; }
+  .heat-legend .gap { width: 10px; }
+  .rank { list-style: none; margin: 0; padding: 0; }
+  .rank li { display: grid; grid-template-columns: 5.5em 1fr 7.5em; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dotted var(--line); font-size: 0.92rem; }
+  .rank .track { position: relative; height: 10px; }
+  .rank .track i { position: absolute; top: 0; bottom: 0; border-radius: 0 3px 3px 0; }
+  .rank .track i.gain { left: 50%; background: var(--gain); }
+  .rank .track i.loss { right: 50%; border-radius: 3px 0 0 3px; background: var(--loss); background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / .45) 0 1.5px, transparent 1.5px 4px); }
+  .rank .track::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--rule); }
+  .two { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 0 40px; }
+  @media (max-width: 860px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  @media (max-width: 760px) {
+    #posTable thead { display: none; }
+    #posTable, #posTable tbody, #posTable tr, #posTable td { display: block; }
+    #posTable tr { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    #posTable td { padding: 0; border: 0; text-align: left; }
+    #posTable td[data-k="pl"] { grid-row: 1; grid-column: 2; text-align: right; }
+    #posTable td[data-k="qty"], #posTable td[data-k="held"] { grid-column: 1 / -1; font-size: 0.88rem; }
+    #posTable td[data-k]::before { content: attr(data-label) " "; color: var(--muted); font: 0.78rem var(--sans); }
+    #posTable td[data-k="tk"]::before, #posTable td[data-k="pl"]::before { content: none; }
+  }
+
   /* Lock */
   .lock { max-width: 420px; margin: 8vh auto 0; padding: 24px; border: 1px solid var(--rule); background: var(--surface); display: grid; gap: 12px; }
   .lock h2 { font: 900 1.6rem var(--display); letter-spacing: 0; text-transform: none; }
@@ -226,15 +280,56 @@
         <h1>Trade Log</h1>
       </div>
       <div class="tabs" role="tablist" aria-label="Views">
-        <button type="button" role="tab" id="tabStocks" aria-controls="viewTrades" aria-selected="true">Stocks</button>
+        <button type="button" role="tab" id="tabDash" aria-controls="viewDash" aria-selected="true">Dashboard</button>
+        <button type="button" role="tab" id="tabStocks" aria-controls="viewTrades" aria-selected="false">Stocks</button>
         <button type="button" role="tab" id="tabOptions" aria-controls="viewTrades" aria-selected="false">Options</button>
-        <button type="button" role="tab" id="tabReport" aria-controls="viewReport" aria-selected="false">Monthly report</button>
+        <button type="button" role="tab" id="tabReport" aria-controls="viewReport" aria-selected="false"><span class="long-label">Monthly </span>Report</button>
+      </div>
+    </div>
+
+    <!-- Dashboard: open positions with live prices, then performance for the chosen period. -->
+    <div id="viewDash" role="tabpanel" aria-labelledby="tabDash">
+      <section class="section" aria-labelledby="posTitle">
+        <div class="section-head">
+          <h2 id="posTitle">Open positions</h2>
+        </div>
+        <div class="stats" id="openStats"></div>
+        <table id="posTable" style="margin-top:14px">
+          <thead><tr><th>Position</th><th class="r">Quantity</th><th class="r">Held / expires</th><th class="r">Cost</th></tr></thead>
+          <tbody id="posRows"></tbody>
+        </table>
+      </section>
+
+      <div class="dash-head">
+        <div class="seg" role="group" aria-label="Period" id="rangeSeg">
+          <button type="button" data-v="ytd" aria-pressed="true">This year</button>
+          <button type="button" data-v="12m" aria-pressed="false">Last 12 months</button>
+          <button type="button" data-v="all" aria-pressed="false">All time</button>
+        </div>
+        <p id="rangeText"></p>
+      </div>
+      <section class="section" aria-labelledby="perfTitle">
+        <h2 id="perfTitle" class="sr">Closed trades</h2>
+        <div class="stats five" id="perfStats"></div>
+        <div class="section-head" style="margin:24px 0 0"><h2>Realized profit and loss, cumulative</h2></div>
+        <div class="plot" id="curve"></div>
+      </section>
+      <div class="two">
+        <section class="section" aria-labelledby="heatTitle">
+          <div class="section-head"><h2 id="heatTitle">Profit and loss by day</h2></div>
+          <div class="heat-wrap" id="heatWrap"><div class="heat" id="heat"></div></div>
+          <div class="heat-legend" aria-hidden="true">Loss <span class="cell l3"></span><span class="cell l2"></span><span class="cell l1"></span><span class="cell"></span><span class="cell g1"></span><span class="cell g2"></span><span class="cell g3"></span> Gain</div>
+        </section>
+        <section class="section" aria-labelledby="tickTitle">
+          <div class="section-head"><h2 id="tickTitle">By ticker</h2></div>
+          <ul class="rank" id="rank"></ul>
+        </section>
       </div>
     </div>
 
     <!-- Trades -->
     <!-- One panel serves both the Stocks and Options tabs; showTab() sets the asset type. -->
-    <div id="viewTrades" role="tabpanel" aria-labelledby="tabStocks">
+    <div id="viewTrades" role="tabpanel" aria-labelledby="tabStocks" hidden>
       <section class="section" aria-labelledby="formTitle">
         <div class="section-head"><h2 id="formTitle">Add a trade</h2></div>
         <div id="editBanner" class="editing-banner" hidden></div>
@@ -405,7 +500,7 @@
     if (!q.has("code") && !q.has("error")) return "";
     const o = readJson(OAUTH_KEY) || {};
     store.del(OAUTH_KEY);
-    history.replaceState(null, "", "/" + (["#options", "#report"].includes(o.hash) ? o.hash : ""));
+    history.replaceState(null, "", "/" + (["#stocks", "#options", "#report"].includes(o.hash) ? o.hash : ""));
     if (q.get("error")) {
       const desc = q.get("error_description") || q.get("error");
       // The very first Google sign-in can report this while Cognito links the accounts; a second try works.
@@ -812,12 +907,315 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  /* ---------- dashboard ---------- */
+  // Open positions are shown at cost. Everything under the period switch (stats, curve,
+  // calendar, by-ticker) uses realized P/L of trades closed in that period.
+
+  let range = "ytd";
+  const DAY = 86400000;
+  const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const dayMs = (iso) => Date.parse(iso + "T00:00:00Z");
+  const shortDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const compact = (n) => (n < 0 ? "−" : "") + "$" + Math.abs(n).toLocaleString("en-US", { notation: Math.abs(n) >= 10000 ? "compact" : "standard", maximumFractionDigits: Math.abs(n) >= 10000 ? 1 : 0 });
+  const svg = (tag, attrs = {}) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const daysBetween = (a, b) => Math.round((dayMs(b) - dayMs(a)) / DAY);
+  const ageText = (n) => n <= 0 ? "today" : n === 1 ? "1 day" : n < 60 ? `${n} days` : n < 730 ? `${Math.round(n / 30.4)} months` : `${(n / 365).toFixed(1)} years`;
+
+  /* tooltip: one floating box shared by the curve and the calendar */
+  const tip = el("div", { className: "tip", hidden: true });
+  tip.setAttribute("role", "status");
+  document.body.append(tip);
+  function showTip(x, y, value, valueCls, ...lines) {
+    tip.replaceChildren(el("strong", { className: valueCls || "", textContent: value }), ...lines.filter(Boolean).map((l) => el("span", { textContent: l })));
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let left = x + 14, top = y - h - 10;
+    if (left + w > innerWidth - 8) left = x - w - 14;
+    if (top < 8) top = y + 16;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = Math.min(top, innerHeight - h - 8) + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+
+  /* ---------- open positions (at cost; no live prices) ---------- */
+
+  function renderPositions() {
+    const open = trades.filter((t) => t.status === "open");
+    const now = today();
+    // Stock lots of one ticker are combined; each option contract is its own row.
+    const stocks = new Map();
+    for (const t of open.filter((x) => !isOpt(x))) {
+      const s = stocks.get(t.ticker) || { ticker: t.ticker, shares: 0, cost: 0, lots: 0, first: t.buy_date };
+      s.shares += Number(t.quantity); s.cost += t.cost; s.lots += 1;
+      if (t.buy_date < s.first) s.first = t.buy_date;
+      stocks.set(t.ticker, s);
+    }
+    const opts = open.filter(isOpt).sort((a, b) => a.expiration.localeCompare(b.expiration));
+    const body = $("#posRows");
+    body.textContent = "";
+    const cell = (k, label, ...kids) => { const td = el("td", { className: k === "tk" ? "" : "r" }, ...kids); td.dataset.k = k; td.dataset.label = label; return td; };
+
+    const stockCost = [...stocks.values()].reduce((s, x) => s + x.cost, 0);
+    for (const s of [...stocks.values()].sort((a, b) => b.cost - a.cost)) {
+      body.append(el("tr", {},
+        cell("tk", "", el("span", { className: "tk", textContent: s.ticker }), el("span", { className: "sub", textContent: s.lots > 1 ? `${s.lots} lots` : "1 lot" })),
+        cell("qty", "Shares", el("span", { className: "num", textContent: qtyText(s.shares) + " sh" }), el("span", { className: "sub", textContent: `avg ${money(s.cost / s.shares)}` })),
+        cell("held", "Held", el("span", { className: "num", textContent: ageText(daysBetween(s.first, now)) }), el("span", { className: "sub", textContent: `since ${dateText(s.first)}` })),
+        cell("pl", "", el("span", { className: "num", textContent: money(s.cost) }), el("span", { className: "sub", textContent: stockCost ? `${Math.round(s.cost / stockCost * 100)}% of stock cost` : "" }))));
+    }
+    let paid = 0, received = 0, soon = 0;
+    for (const t of opts) {
+      const left = daysBetween(now, t.expiration);
+      if (left >= 0 && left <= 7) soon += 1;
+      if (isShort(t)) received += t.cost; else paid += t.cost;
+      const tk = cell("tk", "", el("span", { className: "tk", textContent: t.ticker }), " ",
+        el("span", { className: "tag", textContent: isShort(t) ? "Short option" : "Option" }),
+        el("span", { className: "sub", textContent: contractText(t) }));
+      body.append(el("tr", {}, tk,
+        cell("qty", "Contracts", el("span", { className: "num", textContent: unitText(t) }), el("span", { className: "sub", textContent: `@ ${money(t.buy_price)}` })),
+        cell("held", "Expires", el("span", { className: "num " + (left < 0 ? "loss" : ""), textContent: left < 0 ? "past expiration" : left === 0 ? "today" : `${left} day${left === 1 ? "" : "s"}` }), el("span", { className: "sub", textContent: dateText(t.expiration) })),
+        cell("pl", "", el("span", { className: "num", textContent: money(t.cost) }), el("span", { className: "sub", textContent: isShort(t) ? "premium received" : "premium paid" }))));
+    }
+    if (!open.length) body.append(el("tr", {}, el("td", { colSpan: 4, className: "empty", textContent: "No open positions. Everything you've logged is closed." })));
+
+    const nStocks = stocks.size;
+    const stat = (label, v, sub, c = "") => el("div", { className: "stat" },
+      el("span", { className: "label", textContent: label }), el("span", { className: "v " + c, textContent: v }), el("span", { className: "s", textContent: sub }));
+    $("#openStats").replaceChildren(
+      stat("Open positions", String(nStocks + opts.length), `${nStocks} stock${nStocks === 1 ? "" : "s"} · ${opts.length} option${opts.length === 1 ? "" : "s"}`),
+      stat("Stock cost", nStocks ? money(stockCost) : "—", nStocks ? "what you paid for shares held" : "no stocks held"),
+      stat("Option premium", opts.length ? money(paid) : "—", opts.length ? `paid · ${money(received)} received on shorts` : "no open options"),
+      stat("Expiring soon", String(soon), soon ? "options within 7 days" : "none in the next 7 days"),
+    );
+  }
+
+  /* ---------- performance for the chosen period ---------- */
+
+  function period() {
+    const end = today();
+    const closed = trades.filter((t) => t.status === "closed");
+    let start;
+    if (range === "ytd") start = end.slice(0, 4) + "-01-01";
+    else if (range === "12m") start = isoDay(dayMs(end) - 364 * DAY);
+    else start = closed.reduce((m, t) => (t.sell_date < m ? t.sell_date : m), end);
+    return { start, end, rows: closed.filter((t) => t.sell_date >= start && t.sell_date <= end) };
+  }
+
+  // Realized P/L per close date: Map iso -> { pnl, n }, in date order.
+  function byDay(rows) {
+    const m = new Map();
+    for (const t of [...rows].sort((a, b) => a.sell_date.localeCompare(b.sell_date))) {
+      const d = m.get(t.sell_date) || { pnl: 0, n: 0 };
+      d.pnl += t.pnl; d.n += 1;
+      m.set(t.sell_date, d);
+    }
+    return m;
+  }
+
+  function renderDash() {
+    renderPositions();
+    const p = period();
+    const days = byDay(p.rows);
+    const sameYear = p.start.slice(0, 4) === p.end.slice(0, 4);
+    $("#rangeText").textContent = `${sameYear ? shortDate(p.start) : dateText(p.start)} – ${dateText(p.end)} · ${p.rows.length} closed trade${p.rows.length === 1 ? "" : "s"}`;
+    renderPerfStats(p.rows, days);
+    renderCurve(p, days);
+    renderHeat(p, days);
+    renderRank(p.rows);
+  }
+
+  function renderPerfStats(rows, days) {
+    const wins = rows.filter((t) => t.pnl > 0), losses = rows.filter((t) => t.pnl < 0);
+    const total = rows.reduce((s, t) => s + t.pnl, 0);
+    const cost = rows.reduce((s, t) => s + t.cost, 0);
+    const won = wins.reduce((s, t) => s + t.pnl, 0), lost = -losses.reduce((s, t) => s + t.pnl, 0);
+    const dayList = [...days.entries()];
+    const best = dayList.reduce((b, d) => (!b || d[1].pnl > b[1].pnl ? d : b), null);
+    const worst = dayList.reduce((b, d) => (!b || d[1].pnl < b[1].pnl ? d : b), null);
+    const stat = (label, v, sub, c = "") => el("div", { className: "stat" },
+      el("span", { className: "label", textContent: label }), el("span", { className: "v " + c, textContent: v }), el("span", { className: "s", textContent: sub }));
+    const none = !rows.length;
+    $("#perfStats").replaceChildren(
+      stat("Realized", none ? "—" : signed(total), none ? "no closed trades" : `${pct(cost ? total / cost * 100 : 0)} on ${money(cost)} cost`, cls(total)),
+      stat("Win rate", none ? "—" : Math.round(wins.length / rows.length * 100) + "%", none ? "—" : `${wins.length} won · ${losses.length} lost`),
+      stat("Profit factor", !wins.length && !lost ? "—" : lost ? (won / lost).toFixed(2) : "no losses", lost ? `${compact(won)} won ÷ ${compact(lost)} lost` : "won ÷ lost"),
+      stat("Average win", wins.length ? money(won / wins.length) : "—", losses.length ? `average loss −${money(lost / losses.length)}` : "no losses"),
+      stat("Best day", best && best[1].pnl > 0 ? signed(best[1].pnl) : "—", best && best[1].pnl > 0 ? `${shortDate(best[0])} · worst ${worst[1].pnl < 0 ? signed(worst[1].pnl) : "—"}` : "—", best && best[1].pnl > 0 ? "gain" : ""),
+    );
+  }
+
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo || 1;
+    const raw = span / count, mag = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * mag).find((s) => s >= raw);
+    const ticks = [];
+    for (let v = Math.floor(lo / step) * step; v <= hi + step * 1e-9; v += step) ticks.push(Math.round(v * 100) / 100);
+    if (ticks[ticks.length - 1] < hi) ticks.push(ticks[ticks.length - 1] + step);
+    return ticks;
+  }
+
+  function renderCurve(p, days) {
+    const host = $("#curve");
+    host.textContent = "";
+    if (!days.size) { host.append(el("p", { className: "empty", textContent: "No trades closed in this period." })); return; }
+    // Points: 0 at the start of the period, then the running total after each close date.
+    let run = 0;
+    const pts = [{ d: p.start, v: 0, day: null }];
+    for (const [d, x] of days) { run += x.pnl; pts.push({ d, v: run, day: x }); }
+    const W = Math.max(280, host.clientWidth), H = W < 520 ? 200 : 240;
+    const M = { l: 58, r: 12, t: 10, b: 26 };
+    const x0 = dayMs(p.start), x1 = Math.max(dayMs(p.end), x0 + DAY);
+    const ticks = niceTicks(Math.min(0, ...pts.map((q) => q.v)), Math.max(0, ...pts.map((q) => q.v)), 4);
+    const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+    const X = (iso) => M.l + (dayMs(iso) - x0) / (x1 - x0) * (W - M.l - M.r);
+    const Y = (v) => M.t + (y1 - v) / (y1 - y0 || 1) * (H - M.t - M.b);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", tabindex: "0",
+      "aria-label": `Cumulative realized profit and loss from ${dateText(p.start)} to ${dateText(p.end)}, ending at ${signed(run)}. Use the arrow keys to step through close dates.` });
+    const grid = svg("g", { class: "grid" }), axis = svg("g", { class: "axis" });
+    for (const v of ticks) {
+      if (v !== 0) grid.append(svg("line", { x1: M.l, x2: W - M.r, y1: Y(v), y2: Y(v) }));
+      const t = svg("text", { x: M.l - 8, y: Y(v) + 4, "text-anchor": "end" }); t.textContent = compact(v); axis.append(t);
+    }
+    // Month (or year) ticks along the bottom, thinned to about one per 70px.
+    const months = [];
+    const sd = new Date(x0); let m = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + (sd.getUTCDate() > 1 ? 1 : 0), 1));
+    while (m.getTime() <= x1) { months.push(new Date(m)); m.setUTCMonth(m.getUTCMonth() + 1); }
+    const every = Math.max(1, Math.ceil(months.length / Math.max(2, Math.floor((W - M.l) / 70))));
+    const stepM = every <= 1 ? 1 : every <= 2 ? 2 : every <= 3 ? 3 : every <= 6 ? 6 : 12;
+    for (const d of months.filter((d) => d.getUTCMonth() % stepM === 0)) {
+      const iso = isoDay(d.getTime());
+      const t = svg("text", { x: X(iso), y: H - 6, "text-anchor": "middle" });
+      t.textContent = d.getUTCMonth() === 0 || stepM === 12 ? String(d.getUTCFullYear()) : d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+      axis.append(t);
+    }
+    s.append(grid, svg("line", { class: "zero", x1: M.l, x2: W - M.r, y1: Y(0), y2: Y(0) }), axis);
+    // Step line: realized P/L only changes on close dates.
+    let d = `M${X(pts[0].d)},${Y(0)}`;
+    for (const q of pts.slice(1)) d += `H${X(q.d)}V${Y(q.v)}`;
+    d += `H${X(p.end)}`;
+    s.append(svg("path", { class: "curve", d }));
+    const hair = svg("line", { class: "hair", y1: M.t, y2: H - M.b, visibility: "hidden" });
+    const dot = svg("circle", { class: "dot", r: 5, visibility: "hidden" });
+    const hit = svg("rect", { class: "hit", x: M.l, y: 0, width: W - M.l - M.r, height: H });
+    s.append(hair, dot, hit);
+    host.append(s);
+
+    const marks = pts.slice(1);
+    let cur = -1;
+    const show = (i, cx, cy) => {
+      cur = i;
+      const q = marks[i];
+      hair.setAttribute("x1", X(q.d)); hair.setAttribute("x2", X(q.d)); hair.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", X(q.d)); dot.setAttribute("cy", Y(q.v)); dot.setAttribute("visibility", "visible");
+      dot.setAttribute("fill", q.v < 0 ? "var(--loss)" : "var(--gain)");
+      const r = s.getBoundingClientRect(), k = r.width / W;
+      showTip(cx ?? r.left + X(q.d) * k, cy ?? r.top + Y(q.v) * k, signed(q.v), cls(q.v),
+        dateText(q.d), `that day ${signed(q.day.pnl)} · ${q.day.n} trade${q.day.n === 1 ? "" : "s"}`);
+    };
+    const clear = () => { cur = -1; hair.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); hideTip(); };
+    hit.addEventListener("pointermove", (e) => {
+      const r = s.getBoundingClientRect(), px = (e.clientX - r.left) * W / r.width;
+      let best = 0;
+      marks.forEach((q, i) => { if (Math.abs(X(q.d) - px) < Math.abs(X(marks[best].d) - px)) best = i; });
+      show(best, e.clientX, e.clientY);
+    });
+    hit.addEventListener("pointerleave", clear);
+    s.addEventListener("blur", clear);
+    s.addEventListener("keydown", (e) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+      e.preventDefault();
+      const n = marks.length;
+      const i = e.key === "Home" ? 0 : e.key === "End" ? n - 1 : cur < 0 ? n - 1 : Math.min(n - 1, Math.max(0, cur + (e.key === "ArrowRight" ? 1 : -1)));
+      show(i);
+    });
+  }
+
+  function renderHeat(p, days) {
+    const grid = $("#heat");
+    grid.textContent = "";
+    // At most the last 53 weeks; weeks run Sunday to Saturday.
+    const endMs = dayMs(p.end);
+    const fromMs = Math.max(dayMs(p.start), endMs - 364 * DAY);
+    const first = fromMs - new Date(fromMs).getUTCDay() * DAY;
+    const mags = [...days.values()].map((x) => Math.abs(x.pnl)).filter(Boolean).sort((a, b) => a - b);
+    const q = (f) => mags[Math.min(mags.length - 1, Math.floor(f * mags.length))] || 0;
+    const t1 = q(1 / 3), t2 = q(2 / 3);
+    const level = (v) => { const a = Math.abs(v); return a <= t1 ? 1 : a <= t2 ? 2 : 3; };
+    for (let w = first; w <= endMs; w += 7 * DAY) {
+      // Label the week that holds the 1st of a month; the first week gets its own month's
+      // label unless a new month starts within the next two weeks (the labels would collide).
+      const firstOf = (ms) => { for (let i = 0; i < 7; i++) if (new Date(ms + i * DAY).getUTCDate() === 1) return ms + i * DAY; return null; };
+      const mon = (ms) => new Date(ms).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+      let label = firstOf(w) != null ? mon(firstOf(w)) : "";
+      if (w === first && !label && firstOf(w + 7 * DAY) == null && firstOf(w + 14 * DAY) == null) label = mon(Math.max(w, fromMs));
+      grid.append(el("span", { className: "mlabel", textContent: label }));
+      for (let i = 0; i < 7; i++) {
+        const ms = w + i * DAY, iso = isoDay(ms);
+        if (ms < fromMs || ms > endMs) { grid.append(el("span", { className: "cell out" })); continue; }
+        const x = days.get(iso);
+        if (!x) { const c = el("span", { className: "cell" }); c.title = `${dateText(iso)}: no trades closed`; grid.append(c); continue; }
+        const b = el("button", { type: "button", className: `cell ${x.pnl > 0 ? "g" : x.pnl < 0 ? "l" : ""}${x.pnl ? level(x.pnl) : ""}` });
+        const lines = [dateText(iso), `${x.n} trade${x.n === 1 ? "" : "s"} closed`];
+        b.setAttribute("aria-label", `${lines[0]}: ${signed(x.pnl)}, ${lines[1]}`);
+        b.addEventListener("pointerenter", (e) => showTip(e.clientX, e.clientY, signed(x.pnl), cls(x.pnl), ...lines));
+        b.addEventListener("pointerleave", hideTip);
+        b.addEventListener("focus", () => { const r = b.getBoundingClientRect(); showTip(r.right, r.top, signed(x.pnl), cls(x.pnl), ...lines); });
+        b.addEventListener("blur", hideTip);
+        grid.append(b);
+      }
+    }
+    // Size the cells so the whole period fits when it can (9–14px); otherwise it scrolls.
+    const wrap = $("#heatWrap");
+    const weeks = Math.ceil((endMs - first + DAY) / (7 * DAY));
+    const size = Math.max(9, Math.min(14, Math.floor((wrap.clientWidth + 3) / weeks) - 3));
+    grid.style.gridAutoColumns = size + "px";
+    grid.style.gridTemplateRows = `14px repeat(7, ${size}px)`;
+    wrap.scrollLeft = wrap.scrollWidth;
+  }
+
+  function renderRank(rows) {
+    const by = new Map();
+    for (const t of rows) {
+      const r = by.get(t.ticker) || { pnl: 0, n: 0 };
+      r.pnl += t.pnl; r.n += 1;
+      by.set(t.ticker, r);
+    }
+    let list = [...by.entries()].sort((a, b) => b[1].pnl - a[1].pnl);
+    const ul = $("#rank");
+    ul.textContent = "";
+    if (!list.length) { ul.append(el("li", { className: "empty", style: "display:block", textContent: "No trades closed in this period." })); return; }
+    let skipped = 0;
+    if (list.length > 10) { skipped = list.length - 10; list = [...list.slice(0, 5), null, ...list.slice(-5)]; }
+    const max = Math.max(...list.filter(Boolean).map((r) => Math.abs(r[1].pnl))) || 1;
+    for (const r of list) {
+      if (!r) { ul.append(el("li", { style: "display:block;color:var(--muted);font:italic 0.85rem var(--serif)", textContent: `… ${skipped} more ticker${skipped === 1 ? "" : "s"} in between` })); continue; }
+      const [tk, x] = r;
+      const bar = el("i", { className: cls(x.pnl) });
+      bar.style.width = (Math.abs(x.pnl) / max * 50) + "%";
+      const li = el("li", {}, el("span", { className: "tk", textContent: tk }), el("span", { className: "track" }, bar),
+        el("span", { className: "num r " + cls(x.pnl), style: "text-align:right", textContent: signed(x.pnl) }));
+      li.title = `${tk}: ${signed(x.pnl)} over ${x.n} trade${x.n === 1 ? "" : "s"}`;
+      ul.append(li);
+    }
+  }
+
+  document.querySelectorAll("#rangeSeg button").forEach((b, _, btns) => {
+    b.onclick = () => {
+      range = b.dataset.v;
+      btns.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      renderDash();
+    };
+  });
+  let resizeTimer;
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("#viewDash").hidden) { const p = period(), d = byDay(p.rows); renderCurve(p, d); renderHeat(p, d); } }, 150); });
+  addEventListener("scroll", hideTip, { passive: true });
+
   /* ---------- tabs and start ---------- */
 
   // Tabs: Stocks and Options share one panel (form + list for that asset type);
   // the Monthly report covers both. The tab lives in the URL hash: "", "#options" or "#report".
-  const TABS = { stocks: "#tabStocks", options: "#tabOptions", report: "#tabReport" };
-  const tabFromHash = () => ({ "#options": "options", "#report": "report" })[location.hash] || "stocks";
+  const TABS = { dashboard: "#tabDash", stocks: "#tabStocks", options: "#tabOptions", report: "#tabReport" };
+  const tabFromHash = () => ({ "#stocks": "stocks", "#options": "options", "#report": "report" })[location.hash] || "dashboard";
 
   // Point the shared panel at stocks or options.
   function useAsset(asset) {
@@ -836,13 +1234,17 @@
   }
 
   async function showTab(name) {
-    const isReport = name === "report";
+    const isReport = name === "report", isDash = name === "dashboard";
     for (const [n, id] of Object.entries(TABS)) $(id).setAttribute("aria-selected", String(n === name));
-    $("#viewTrades").hidden = isReport;
+    $("#viewTrades").hidden = isReport || isDash;
     $("#viewReport").hidden = !isReport;
-    const hash = name === "stocks" ? "" : "#" + name;
+    $("#viewDash").hidden = !isDash;
+    hideTip();
+    const hash = isDash ? "" : "#" + name;
     if (location.hash !== hash) history.replaceState(null, "", hash || location.pathname);
-    if (isReport) {
+    if (isDash) {
+      renderDash();
+    } else if (isReport) {
       try { await loadReport(report ? report.year : null); setMsg($("#reportMsg"), ""); }
       catch (e) { if (e.message !== "locked") setMsg($("#reportMsg"), e.message, "err"); }
     } else {
