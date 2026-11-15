@@ -97,7 +97,7 @@
 
   /* Composer, like a fresh column of copy */
   .composer { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--rule); padding: clamp(14px, 2vw, 22px); }
-  textarea { display: block; width: 100%; min-height: clamp(128px, 22vh, 240px); max-height: 50vh; resize: none; padding: 4px 2px; border: 0; background: transparent; font: clamp(1.1rem, 1rem + 0.4vw, 1.3rem)/1.55 var(--serif); }
+  textarea { display: block; width: 100%; min-height: clamp(170px, 28vh, 300px); max-height: 60vh; resize: none; padding: 4px 2px; border: 0; background: transparent; font: clamp(1.1rem, 1rem + 0.4vw, 1.3rem)/1.55 var(--serif); }
   textarea:focus { outline: none; }
   textarea::placeholder { color: var(--muted); font-style: italic; }
   .composer:focus-within { border-color: var(--rule); }
@@ -160,7 +160,7 @@
   @media (max-width: 560px) { dialog { margin-block: auto 12px; } }
   .sheet { display: grid; gap: 12px; padding: 20px; }
   .sheet h2 { font: 700 1.6rem/1.15 var(--display); letter-spacing: 0; text-transform: none; padding-bottom: 8px; border-bottom: 4px double var(--rule); }
-  .sheet textarea { min-height: 110px; border: 1px solid var(--line); padding: 10px 12px; background: var(--surface); }
+  .sheet textarea { min-height: 190px; border: 1px solid var(--line); padding: 10px 12px; background: var(--surface); }
   .sheet textarea:focus { outline: 2px solid var(--link); }
   .btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
   #viewDlg { width: min(900px, calc(100% - 16px)); background: #000; border: 0; }
@@ -318,7 +318,7 @@
   textarea {
     font: 600 1.55rem/var(--lh) var(--hand); padding: 0 2px; color: var(--ink);
     background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--lh) - 1px), var(--paper-line) calc(var(--lh) - 1px), var(--paper-line) var(--lh));
-    background-attachment: local; min-height: calc(var(--lh) * 5);
+    background-attachment: local; min-height: calc(var(--lh) * 7);
   }
   textarea::placeholder { font-style: normal; color: var(--muted); opacity: .8; }
   .tool { border: 1.5px dashed var(--line); border-radius: 10px; background: transparent; font: 700 1.2rem var(--hand); letter-spacing: 0.02em; text-transform: none; color: var(--ink); }
@@ -382,6 +382,27 @@
   .nb-btn:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--bg); }
   .nb-mid { font: 600 1.2rem var(--hand); font-style: normal; }
   .nb-mid input { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  /* formatting toolbar and formatted entries */
+  .fmt { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1.5px dashed var(--line); }
+  .fmt button { min-width: 36px; height: 34px; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ink); font: 700 1rem var(--serif); }
+  .fmt button:hover { border-color: var(--line); background: var(--surface2); color: var(--accent); }
+  .fmt button svg { display: block; width: 18px; height: 18px; fill: currentColor; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+  .fmt button svg path { fill: none; }
+  .fmt button svg text { stroke: none; font: 700 7px var(--sans); }
+  .fmt-sep { width: 1px; margin: 4px 4px; background: var(--line); }
+  .sheet .fmt { margin: 0; }
+  .rt { white-space: normal; }
+  .rt .rt-p { display: block; white-space: pre-wrap; }
+  .rt ul, .rt ol { margin: 0.2em 0; padding-left: 1.4em; }
+  .rt li { padding-left: 0.15em; }
+  .rt ul { list-style: disc; } .rt ol { list-style: decimal; }
+  .rt ul li::marker { color: var(--accent); }
+  .rt .rt-h { display: block; margin: 0.3em 0 0.1em; font: 700 1.6em/1.1 var(--hand); color: var(--ink); }
+  .rt a { color: var(--link); text-underline-offset: 3px; overflow-wrap: anywhere; }
+  .rt s { opacity: .7; }
+  .nb-text.rt ul, .nb-text.rt ol { margin: 0; }
+  .nb-text.rt .rt-h { margin: 0; font-size: 1.25em; line-height: var(--lh); color: #2E2418; }
+  .nb-text.rt a { color: #6B4A33; }
   @media (prefers-color-scheme: dark) { .photo, .thumbs img { background: #e9dfcc; } }
   @media (prefers-reduced-motion: reduce) { .entries .entry, .photo, .grid li:nth-child(even) .photo { transform: none; } }
 </style>
@@ -429,6 +450,15 @@
   <main id="main" tabindex="-1">
     <section class="composer" aria-label="New entry">
       <label for="text" class="sr">What did you do?</label>
+      <div class="fmt" role="toolbar" aria-label="Formatting" data-for="text">
+        <button type="button" data-f="b" title="Bold (Ctrl/⌘+B)" aria-label="Bold"><b>B</b></button>
+        <button type="button" data-f="i" title="Italic (Ctrl/⌘+I)" aria-label="Italic"><i>I</i></button>
+        <button type="button" data-f="s" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+        <span class="fmt-sep" aria-hidden="true"></span>
+        <button type="button" data-f="ul" title="Bulleted list" aria-label="Bulleted list"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="5" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="4" cy="15" r="1.6"/><path d="M8 5h9M8 10h9M8 15h9"/></svg></button>
+        <button type="button" data-f="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" aria-hidden="true"><text x="1" y="7.5">1</text><text x="1" y="16.5">2</text><path d="M8 5h9M8 14h9"/></svg></button>
+        <button type="button" data-f="h" title="Heading" aria-label="Heading">H</button>
+      </div>
       <textarea id="text" placeholder="What did you do?" maxlength="5000"></textarea>
       <ul class="thumbs" id="pending" aria-label="Photos to add"></ul>
       <div class="tools">
@@ -509,7 +539,16 @@
   <form class="sheet" id="editForm">
     <h2 id="editTitle">Edit entry</h2>
     <label class="sr" for="eText">Entry text</label>
-    <textarea id="eText" maxlength="5000"></textarea>
+    <div class="fmt" role="toolbar" aria-label="Formatting" data-for="eText">
+      <button type="button" data-f="b" title="Bold (Ctrl/⌘+B)" aria-label="Bold"><b>B</b></button>
+      <button type="button" data-f="i" title="Italic (Ctrl/⌘+I)" aria-label="Italic"><i>I</i></button>
+      <button type="button" data-f="s" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+      <span class="fmt-sep" aria-hidden="true"></span>
+      <button type="button" data-f="ul" title="Bulleted list" aria-label="Bulleted list"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="5" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="4" cy="15" r="1.6"/><path d="M8 5h9M8 10h9M8 15h9"/></svg></button>
+      <button type="button" data-f="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" aria-hidden="true"><text x="1" y="7.5">1</text><text x="1" y="16.5">2</text><path d="M8 5h9M8 14h9"/></svg></button>
+      <button type="button" data-f="h" title="Heading" aria-label="Heading">H</button>
+    </div>
+    <textarea id="eText" maxlength="5000" autofocus></textarea>
     <ul class="thumbs" id="ePhotos" aria-label="Photos in this entry"></ul>
     <p class="msg" id="eErr" role="alert"></p>
     <div class="btns">
@@ -742,17 +781,99 @@ async function renderMain() {
       : `<li><div class="ph">Photo will load when online</div></li>`).join('');
     return `<li class="entry" data-id="${esc(e.id)}">
       <div class="meta"><span>${esc(entryTime(e))}</span>${editable(e) ? `<button type="button" class="link" data-edit="${esc(e.id)}">Edit</button>` : ''}</div>
-      ${e.text ? `<p class="body">${esc(e.text)}</p>` : ''}
+      ${e.text ? `<div class="body rt">${richText(e.text)}</div>` : ''}
       ${imgs ? `<ul class="grid">${imgs}</ul>` : ''}
     </li>`;
   }).join('');
+}
+
+/* ---------- Rich text: entries stay plain text with light markers, shown formatted ----------
+   **bold**  *italic*  ~~strike~~  "# " heading line  "- " bullet  "1. " numbered  links auto-linked */
+function inlineRich(line) {
+  let h = esc(line);
+  h = h.replace(/\*\*(?=\S)([^*]*?\S)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/(^|[^*\w])\*(?=\S)([^*]*?\S)\*(?![*\w])/g, '$1<em>$2</em>');
+  h = h.replace(/~~(?=\S)(.*?\S)~~/g, '<s>$1</s>');
+  h = h.replace(/\bhttps?:\/\/[^\s<]+[^\s<.,;:!?)'"\]]/g, u => /&quot;|&#39;/.test(u) ? u : `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  return h;
+}
+function richText(text) {
+  const out = [], para = [];
+  let list = null;   // { tag, items }
+  const flushPara = () => { if (para.length) { out.push(`<span class="rt-p">${para.map(inlineRich).join('\n')}</span>`); para.length = 0; } };
+  const flushList = () => { if (list) { out.push(`<${list.tag}>${list.items.map(i => `<li>${inlineRich(i)}</li>`).join('')}</${list.tag}>`); list = null; } };
+  for (const line of String(text).split('\n')) {
+    const ul = /^\s*[-*•]\s+(.*)$/.exec(line), ol = /^\s*\d+[.)]\s+(.*)$/.exec(line), hd = /^#{1,3}\s+(.*)$/.exec(line);
+    const item = ul || ol, tag = ul ? 'ul' : 'ol';
+    if (item) { flushPara(); if (list && list.tag !== tag) flushList(); if (!list) list = { tag, items: [] }; list.items.push(item[1]); continue; }
+    flushList();
+    if (hd) { flushPara(); out.push(`<span class="rt-h">${inlineRich(hd[1])}</span>`); continue; }
+    para.push(line);
+  }
+  flushPara(); flushList();
+  return out.join('');
+}
+// Toolbar actions on a textarea. Inline styles wrap the selection; line styles prefix the selected lines.
+function applyFormat(ta, f) {
+  const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
+  const set = (val, a, b) => {
+    ta.focus(); ta.setSelectionRange(0, v.length);
+    if (!document.execCommand || !document.execCommand('insertText', false, val)) ta.value = val;   // execCommand keeps undo working
+    ta.setSelectionRange(a, b); ta.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  if (f === 'b' || f === 'i' || f === 's') {
+    const m = f === 'b' ? '**' : f === 'i' ? '*' : '~~';
+    const sel = v.slice(s, e);
+    if (sel.startsWith(m) && sel.endsWith(m) && sel.length >= 2 * m.length) { const inner = sel.slice(m.length, -m.length); return set(v.slice(0, s) + inner + v.slice(e), s, s + inner.length); }
+    if (v.slice(s - m.length, s) === m && v.slice(e, e + m.length) === m) return set(v.slice(0, s - m.length) + sel + v.slice(e + m.length), s - m.length, e - m.length);
+    const lead = sel.match(/^\s*/)[0].length, trail = sel.length - sel.trimEnd().length;   // keep spaces outside the markers
+    const a = s + lead, b = e - trail;
+    return set(v.slice(0, a) + m + v.slice(a, b) + m + v.slice(b), a + m.length, b + m.length);
+  }
+  const ls = v.lastIndexOf('\n', s - 1) + 1;
+  let le = v.indexOf('\n', e > s && v[e - 1] === '\n' ? e - 1 : e); if (le < 0) le = v.length;
+  const lines = v.slice(ls, le).split('\n');
+  const re = f === 'ul' ? /^\s*[-*•]\s+/ : f === 'ol' ? /^\s*\d+[.)]\s+/ : /^#{1,3}\s+/;
+  const all = lines.every(l => re.test(l) || !l.trim());
+  const strip = l => l.replace(/^\s*[-*•]\s+|^\s*\d+[.)]\s+|^#{1,3}\s+/, '');
+  let n = 0;
+  const next = lines.map(l => {
+    if (!l.trim()) return l;
+    if (all) return l.replace(re, '');
+    return (f === 'ul' ? '- ' : f === 'ol' ? `${++n}. ` : '# ') + strip(l);
+  }).join('\n');
+  set(v.slice(0, ls) + next + v.slice(le), ls, ls + next.length);
+}
+// Enter inside a list continues it; Enter on an empty item ends the list.
+function listEnter(ev) {
+  const ta = ev.target, v = ta.value, s = ta.selectionStart;
+  if (ev.key !== 'Enter' || ev.shiftKey || ev.ctrlKey || ev.metaKey || s !== ta.selectionEnd) return;
+  const ls = v.lastIndexOf('\n', s - 1) + 1, line = v.slice(ls, s);
+  const m = /^(\s*)([-*•]|(\d+)[.)])\s+/.exec(line);
+  if (!m) return;
+  ev.preventDefault();
+  ta.focus();
+  if (line.trim() === m[0].trim()) { ta.setSelectionRange(ls, s); document.execCommand('insertText', false, '') || (ta.value = v.slice(0, ls) + v.slice(s)); }
+  else { const bullet = m[3] ? `${+m[3] + 1}${m[2].slice(-1)} ` : `${m[2]} `; document.execCommand('insertText', false, '\n' + m[1] + bullet) || (ta.value = v.slice(0, s) + '\n' + m[1] + bullet + v.slice(s)); }
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+}
+function bindFormatting() {
+  document.querySelectorAll('.fmt').forEach(bar => {
+    const ta = document.getElementById(bar.dataset.for);
+    bar.addEventListener('mousedown', ev => { if (ev.target.closest('button')) ev.preventDefault(); });   // keep the selection in the textarea
+    bar.addEventListener('click', ev => { const b = ev.target.closest('button[data-f]'); if (b) applyFormat(ta, b.dataset.f); });
+    ta.addEventListener('keydown', ev => {
+      if ((ev.ctrlKey || ev.metaKey) && !ev.shiftKey && !ev.altKey && (ev.key === 'b' || ev.key === 'i')) { ev.preventDefault(); applyFormat(ta, ev.key); return; }
+      listEnter(ev);
+    });
+  });
 }
 
 /* ---------- Draft (text only) ---------- */
 const saveDraft = () => { try { localStorage.setItem(DRAFT_KEY, $('#text').value); } catch (e) { /* ignore */ } };
 const loadDraft = () => { try { return localStorage.getItem(DRAFT_KEY) || ''; } catch (e) { return ''; } };
 const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ } };
-function autosize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.45)) + 'px'; }
+function autosize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.6)) + 'px'; }
 
 /* ---------- Actions ---------- */
 async function saveEntry() {
@@ -1259,7 +1380,7 @@ async function nbRender(dir) {
         ? `<div><button type="button" class="nb-photo" data-view="${esc(e.id)}:${i}" aria-label="Open photo ${i + 1}"><img src="${esc(imgSrc(im))}" alt="Photo ${i + 1} from this entry" loading="lazy"></button></div>` : '').join('');
       return `<section class="nb-entry">
         <div class="nb-meta"><span>${esc(entryTime(e))}</span><span class="nb-tag" data-s="${tag[0]}">${tag[1]}</span>${editable(e) ? `<button type="button" class="nb-edit" data-edit="${esc(e.id)}">Edit</button>` : ''}</div>
-        ${e.text ? `<p class="nb-text">${esc(e.text)}</p>` : ''}
+        ${e.text ? `<div class="nb-text rt">${richText(e.text)}</div>` : ''}
         ${photos ? `<div class="nb-photos">${photos}</div>` : ''}
       </section>`;
     }).join('');
@@ -1357,6 +1478,7 @@ function bind() {
   $('#viewDlg').addEventListener('click', e => { if (e.target === $('#viewDlg')) $('#viewDlg').close(); });
 
   bindNotebook();
+  bindFormatting();
   $('#syncChip').onclick = openConn;
   $('#syncBtn').onclick = openConn;
   $('#connForm').onsubmit = e => { e.preventDefault(); doSignIn(); };
